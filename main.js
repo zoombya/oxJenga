@@ -27,7 +27,7 @@ function init() {
   scene.background = new THREE.Color( 0x808080 );
 
   camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 );
-  camera.position.set( 0, 1.6, 3 );
+  camera.position.set( 0, 1.6, 5 );
 
   controls = new OrbitControls( camera, container );
   controls.target.set( 0, 1.6, 0 );
@@ -56,44 +56,89 @@ function init() {
   light.shadow.mapSize.set( 4096, 4096 );
   scene.add( light );
 
+
+  //Messing around here
+  fetch("./moon.oxview").then((resp)=>resp.text()).then(txt=>{
+    // we recieve an oxView file, so it's json
+    const json_data = JSON.parse(txt)
+    console.log(json_data)
+
+    const strands = json_data.systems[0].strands 
+    let n_monomers = 0;
+    strands.forEach(strand=>{
+      n_monomers += (strand.end5 - strand.end3 + 1)
+    })
+    console.log(n_monomers)
+    const sgeometry = new THREE.SphereGeometry(0.01,6,6);
+    const material = new THREE.MeshStandardMaterial( {
+       roughness: 0.7,
+       metalness: 0.0
+     });
+
+    const instancedMesh = new THREE.InstancedMesh(sgeometry,material,n_monomers)
+    const dummy = new THREE.Object3D()
+    let bid = 0
+    strands.forEach(strand=>{
+        strand.monomers.forEach(base=>{
+          dummy.position.set(
+          base.p[0] / 50 + 1,
+          base.p[1] / 50 + 1.5,
+          base.p[2] / 50  ,
+        )
+        dummy.updateMatrix()
+        instancedMesh.setMatrixAt(bid, dummy.matrix)
+      bid++
+      })
+    })
+    scene.add(instancedMesh)
+    
+    
+
+  })
+  // read from nanobase might be subject to XSSS scripting issues ...
+  // need to look more into it, but even oxview.org can't fetch in local dev cycle 
+
+
+
+
   group = new THREE.Group();
   scene.add( group );
 
-  const geometries = [
-    new THREE.BoxGeometry( 0.2, 0.2, 0.2 ),
-    new THREE.ConeGeometry( 0.2, 0.2, 64 ),
-    new THREE.CylinderGeometry( 0.2, 0.2, 0.2, 64 ),
-    new THREE.IcosahedronGeometry( 0.2, 8 ),
-    new THREE.TorusGeometry( 0.2, 0.04, 64, 32 )
-  ];
+  // const geometries = [
+  //   new THREE.BoxGeometry( 0.2, 0.2, 0.2 ),
+  //   new THREE.ConeGeometry( 0.2, 0.2, 64 ),
+  //   new THREE.CylinderGeometry( 0.2, 0.2, 0.2, 64 ),
+  //   new THREE.IcosahedronGeometry( 0.2, 8 ),
+  //   new THREE.TorusGeometry( 0.2, 0.04, 64, 32 )
+  // ];
 
-  for ( let i = 0; i < 50; i ++ ) {
+  // for ( let i = 0; i < 50; i ++ ) {
 
-    const geometry = geometries[ Math.floor( Math.random() * geometries.length ) ];
-    const material = new THREE.MeshStandardMaterial( {
-      color: Math.random() * 0xffffff,
-      roughness: 0.7,
-      metalness: 0.0
-    } );
+  //   const geometry = geometries[ Math.floor( Math.random() * geometries.length ) ];
+  //   const material = new THREE.MeshStandardMaterial( {
+  //     color: Math.random() * 0xffffff,
+  //     roughness: 0.7,
+  //     metalness: 0.0
+  //   } );
 
-    const object = new THREE.Mesh( geometry, material );
+  //   const object = new THREE.Mesh( geometry, material );
 
-    object.position.x = Math.random() * 4 - 2;
-    object.position.y = Math.random() * 2;
-    object.position.z = Math.random() * 4 - 2;
+  //   object.position.x = Math.random() * 4 - 2;
+  //   object.position.y = Math.random() * 2;
+  //   object.position.z = Math.random() * 4 - 2;
 
-    object.rotation.x = Math.random() * 2 * Math.PI;
-    object.rotation.y = Math.random() * 2 * Math.PI;
-    object.rotation.z = Math.random() * 2 * Math.PI;
+  //   object.rotation.x = Math.random() * 2 * Math.PI;
+  //   object.rotation.y = Math.random() * 2 * Math.PI;
+  //   object.rotation.z = Math.random() * 2 * Math.PI;
 
-    object.scale.setScalar( Math.random() + 0.5 );
+  //   object.scale.setScalar( Math.random() + 0.5 );
 
-    object.castShadow = true;
-    object.receiveShadow = true;
+  //   object.castShadow = true;
+  //   object.receiveShadow = true;
 
-    group.add( object );
+  //   group.add( object );
 
-  }
+  // }
 
   //
 
