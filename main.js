@@ -2,8 +2,12 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { VRButton } from 'three/addons/webxr/VRButton.js'
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'
-import { relax_scenario } from './UTILS/relax_scenarios'
-import { establishConnection } from './UTILS/oxserve'
+import { makeTopFile,makeDatFile,
+         oxcord_to_scene,
+         updateStrandsFromDat,
+         makeFileDropable
+         } from './UTILS/file.js'
+
 
 let container
 let camera, scene, renderer
@@ -15,6 +19,11 @@ const intersected = []
 const tempMatrix = new THREE.Matrix4()
 
 let controls, group
+
+// my oxDNA related mess 
+let n_elements, strands
+let box 
+let instancedMesh
 
 // Default colors for the strands
 const strandColors = [
@@ -30,6 +39,9 @@ const initSceneFromJSON = (txt) => {
   const json_data = JSON.parse(txt)
   console.log(json_data)
 
+  box = json_data.box
+  console.log(box)
+
   const strands = json_data.systems[0].strands 
   let n_monomers = 0 
   strands.forEach(strand=>{
@@ -42,30 +54,39 @@ const initSceneFromJSON = (txt) => {
      metalness: 0.0
    }) 
 
-  const instancedMesh = new THREE.InstancedMesh(sgeometry,material,n_monomers)
+  instancedMesh = new THREE.InstancedMesh(sgeometry,material,n_monomers)
   instancedMesh.castShadow = true
   instancedMesh.receiveShadow = true
   const dummy = new THREE.Object3D()
   let bid = 0
   
   strands.forEach((strand, id)=>{
-      strand.monomers.forEach(base=>{
-        dummy.position.set(
-        (base.p[0]  ) / 50 + .5,
-        (base.p[1]  ) / 50 + 1.3,
-        (base.p[2]  ) / 50  ,
-      )
-      dummy.updateMatrix()
-      instancedMesh.setMatrixAt(bid, dummy.matrix)
-      instancedMesh.setColorAt(bid, strandColors[id%strandColorsLen])
-      bid++
+      // we keep elements on the scene 3 -> 5
+      // I'll regret this deeply, but dat parsing is in order 
+      strand.monomers.slice().reverse().forEach(base=>{
+        let p = oxcord_to_scene(base.p)
+        dummy.position.set(p[0], p[1], p[2])
+        dummy.updateMatrix()
+        instancedMesh.setMatrixAt(bid, dummy.matrix)
+        instancedMesh.setColorAt(bid, strandColors[id%strandColorsLen])
+        bid++
     })
   })
   group.add(instancedMesh)
+  return [strands, n_monomers]
 }
 const init = () => {
   container = document.createElement( 'div' )
   document.body.appendChild( container )
+
+  //let's see if our dat parser workzz
+  makeFileDropable(container, (files)=>{
+    // assuming we got one file 
+    // simple parser test 
+    files[0].text().then(text=>{
+      updateStrandsFromDat(text, instancedMesh)
+    })
+  })
 
   scene = new THREE.Scene()
   scene.background = new THREE.Color( 0x808080 )
@@ -100,8 +121,17 @@ const init = () => {
   light.shadow.mapSize.set( 4096, 4096 )
   scene.add( light )
 
-  //Load up our model here
-  fetch("./moon.oxview").then((resp)=>resp.text()).then(initSceneFromJSON)
+  //Load up our model here and establish oxServe
+  fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
+    [strands, n_elements] = initSceneFromJSON(txt)
+    
+    //generate it's description in oxDNA world
+    let top_file = makeTopFile(strands, n_elements)
+    let dat_file = makeDatFile(strands, box)
+
+
+
+  })
   // read from nanobase might be subject to XSSS scripting issues ...
   // need to look more into it, but even oxview.org can't fetch in local dev cycle 
 
@@ -161,8 +191,8 @@ const init = () => {
 
 
   //work on oxserve stuff 
-  let socket = establishConnection()
-  console.log(socket)
+  //let socket = establishConnection()
+  //console.log(socket)
 }
 
 const onWindowResize = () => {
