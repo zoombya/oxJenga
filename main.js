@@ -7,6 +7,7 @@ import { makeTopFile,makeDatFile,
          updateStrandsFromDat,
          makeFileDropable
          } from './UTILS/file.js'
+import { establishConnection } from './UTILS/oxserve.js'
 
 
 let container
@@ -24,6 +25,7 @@ let controls, group
 let n_elements, strands
 let box 
 let instancedMesh
+let ox_socket
 
 // Default colors for the strands
 const strandColors = [
@@ -73,6 +75,17 @@ const initSceneFromJSON = (txt) => {
     })
   })
   group.add(instancedMesh)
+
+  //generate it's description in oxDNA world
+  let top_file = makeTopFile(strands, n_monomers)
+  let dat_file = makeDatFile(strands, box)
+  // let's establish oxServe connection and update cycles here 
+  ox_socket = establishConnection(instancedMesh, top_file, dat_file)
+  console.log(ox_socket)
+  window.socket = ox_socket
+  //ox_socket.start_simulation()
+
+
   return [strands, n_monomers]
 }
 const init = () => {
@@ -82,7 +95,7 @@ const init = () => {
   //let's see if our dat parser workzz
   makeFileDropable(container, (files)=>{
     // assuming we got one file 
-    // simple parser test 
+    // -> simple parser test 
     files[0].text().then(text=>{
       updateStrandsFromDat(text, instancedMesh)
     })
@@ -124,13 +137,6 @@ const init = () => {
   //Load up our model here and establish oxServe
   fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
     [strands, n_elements] = initSceneFromJSON(txt)
-    
-    //generate it's description in oxDNA world
-    let top_file = makeTopFile(strands, n_elements)
-    let dat_file = makeDatFile(strands, box)
-
-
-
   })
   // read from nanobase might be subject to XSSS scripting issues ...
   // need to look more into it, but even oxview.org can't fetch in local dev cycle 
