@@ -7,6 +7,7 @@ import { makeTopFile,makeDatFile,
          updateStrandsFromDat,
          makeFileDropable
          } from './UTILS/file.js'
+import {onSelectStart, onSelectEnd} from './UTILS/selection_handlers';
 import { establishConnection } from './UTILS/oxserve.js'
 
 
@@ -50,7 +51,7 @@ const initSceneFromJSON = (txt) => {
     n_monomers += (strand.end5 - strand.end3 + 1)
   })
   console.log(n_monomers)
-  const sgeometry = new THREE.SphereGeometry(0.01,6,6) 
+  const sgeometry = new THREE.SphereGeometry(0.007,6,6) 
   const material = new THREE.MeshStandardMaterial( {
      roughness: 0.7,
      metalness: 0.0
@@ -65,7 +66,7 @@ const initSceneFromJSON = (txt) => {
   strands.forEach((strand, id)=>{
       // we keep elements on the scene 3 -> 5
       // I'll regret this deeply, but dat parsing is in order 
-      strand.monomers.slice().reverse().forEach(base=>{
+      strand.monomers.forEach(base=>{
         let p = oxcord_to_scene(base.p)
         dummy.position.set(p[0], p[1], p[2])
         dummy.updateMatrix()
@@ -159,8 +160,8 @@ const init = () => {
   // controllers
 
   controller1 = renderer.xr.getController( 0 ) 
-  controller1.addEventListener( 'selectstart', onSelectStart ) 
-  controller1.addEventListener( 'selectend', onSelectEnd ) 
+  controller1.addEventListener( 'squeezestart', onSelectStart ) 
+  controller1.addEventListener( 'squeezeend', onSelectEnd ) 
   scene.add( controller1 ) 
 
   controller2 = renderer.xr.getController( 1 ) 
@@ -210,43 +211,6 @@ const onWindowResize = () => {
 
 }
 
-function onSelectStart( event ) {
-
-  const controller = event.target 
-
-  const intersections = getIntersections( controller ) 
-
-  if ( intersections.length > 0 ) {
-
-    const intersection = intersections[ 0 ] 
-
-    const object = intersection.object 
-    object.material.emissive.b = 1 
-    controller.attach( object ) 
-
-    controller.userData.selected = object 
-
-  }
-
-}
-
-function onSelectEnd( event ) {
-
-  const controller = event.target 
-
-  if ( controller.userData.selected !== undefined ) {
-
-    const object = controller.userData.selected 
-    object.material.emissive.b = 0 
-    group.attach( object ) 
-
-    controller.userData.selected = undefined 
-
-  }
-
-
-}
-
 function getIntersections( controller ) {
 
   tempMatrix.identity().extractRotation( controller.matrixWorld ) 
@@ -271,9 +235,22 @@ function intersectObjects( controller ) {
 
     const intersection = intersections[ 0 ] 
 
+    // const instanceId = intersection[ 0 ].instanceId;
+    // console.log("instanceID", instanceId)
+
+
     const object = intersection.object 
+    // console.log(
+    //  intersection.instanceId
+    // )
+    object.setColorAt( intersection.instanceId, new THREE.Color("red"))
+    object.instanceColor.needsUpdate = true
+
+    //object.setColorAt(instanceId, new THREE.Color("red"))
+
     object.material.emissive.r = 1 
     intersected.push( object ) 
+
 
     line.scale.z = intersection.distance 
 
@@ -308,8 +285,9 @@ function render() {
 
   cleanIntersected() 
 
-  intersectObjects( controller1 ) 
-  intersectObjects( controller2 ) 
+  intersectObjects( controller1) 
+  intersectObjects( controller2) 
+  
 
   renderer.render( scene, camera ) 
 

@@ -8,7 +8,7 @@ export class OXServeSocket extends WebSocket{
         this.onopen = (resonse) => {
             console.log("connected to nanobase", resonse)
             this.abort = false
-            this.start_simulation()
+            //this.start_simulation()
         }
 
         this.onmessage = (response) => {
