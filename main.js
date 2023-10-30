@@ -74,6 +74,7 @@ const strandColors = [
   new THREE.Color(0x437092), //dark blue
   new THREE.Color(0x6ea4cc), //light blue
 ] 
+
 const strandColorsLen = strandColors.length 
     
 const initSceneFromJSON = (txt) => {
@@ -121,7 +122,7 @@ const initSceneFromJSON = (txt) => {
        
         bbPosition.x /= 50 
         bbPosition.y /= 50 
-        bbPosition.y += 1.3
+        bbPosition.y += 1
         bbPosition.z /= 50 
         dummy.position.copy(bbPosition)
 
