@@ -90,7 +90,7 @@ const initSceneFromJSON = (txt) => {
     n_monomers += (strand.end5 - strand.end3 + 1)
   })
   console.log(n_monomers)
-  const sgeometry = new THREE.SphereGeometry(0.007,10,) 
+  const sgeometry = new THREE.SphereGeometry(0.015,10,) 
   const material = new THREE.MeshStandardMaterial( {
      roughness: 0.7,
      metalness: 0.0
@@ -106,16 +106,10 @@ const initSceneFromJSON = (txt) => {
       // we keep elements on the scene 3 -> 5
       // I'll regret this deeply, but dat parsing is in order 
       strand.monomers.forEach(base=>{
-        //let p = oxcord_to_scene(base.p)
-        //dummy.position.set(p[0], p[1], p[2])
+
         let p = new THREE.Vector3(...base.p)
         let a1 = new THREE.Vector3(...base.a1)
         let a3 = new THREE.Vector3(...base.a3)
-        
-        //console.log(base.p)
-        // let p = new THREE.Vector3(line[0],line[1],line[2])
-        // let a1 = new THREE.Vector3(line[3],line[4],line[5])
-        // let a3 = new THREE.Vector3(line[4],line[5],line[6])
         let a2 = a1.clone().cross(a3)
 
         let bbPosition =  new THREE.Vector3(
@@ -316,8 +310,10 @@ function intersectObjects( controller ) {
     // console.log(
     //  intersection.instanceId
     // )
-    object.setColorAt( intersection.instanceId, new THREE.Color("red"))
-    object.instanceColor.needsUpdate = true
+
+    // // intersections 
+    // object.setColorAt( intersection.instanceId, new THREE.Color("red"))
+    // object.instanceColor.needsUpdate = true
 
     //object.setColorAt(instanceId, new THREE.Color("red"))
 
