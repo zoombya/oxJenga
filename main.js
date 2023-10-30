@@ -228,7 +228,7 @@ scene.background = new THREE.Color(0x00000,0)
   renderer.xr.enabled = true 
   container.appendChild( renderer.domElement ) 
 
-  document.body.appendChild( XRButton.createButton( renderer ) ) 
+  document.body.appendChild( XRButton.createButton( renderer, { optionalFeatures: [ 'light-estimation' ] } ) ) 
 
 
 
