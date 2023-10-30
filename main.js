@@ -180,16 +180,17 @@ scene.background = new THREE.Color(0x00000,0)
     roughness: 1.0,
     metalness: 0.0
   })
-  const floor = new THREE.Mesh( floorGeometry, floorMaterial )
-  floor.rotation.x = - Math.PI / 2
-  floor.receiveShadow = true
-  scene.add( floor )
-
-  scene.add( new THREE.HemisphereLight( 0x808080, 0x606060 ) )
+  // const floor = new THREE.Mesh( floorGeometry, floorMaterial )
+  // floor.rotation.x = - Math.PI / 2
+  // floor.receiveShadow = true
+  // scene.add( floor )
+  let hemilight =  new THREE.HemisphereLight( 0x808080, 0x606060 ) 
+  hemilight.intensity=5.5
+  scene.add(hemilight)
 
   const light = new THREE.DirectionalLight( 0xffffff )
   light.position.set( 0, 6, 0 )
-  light.intensity=10
+  light.intensity=6
   light.castShadow = true
   light.shadow.camera.top = 2
   light.shadow.camera.bottom = - 2
@@ -226,8 +227,11 @@ scene.background = new THREE.Color(0x00000,0)
   // controllers
 
   controller1 = renderer.xr.getController( 0 ) 
-  controller1.addEventListener( 'squeezestart', onSelectStart ) 
-  controller1.addEventListener( 'squeezeend', onSelectEnd ) 
+  // controller1.addEventListener( 'squeezestart', onSelectStart ) 
+  // controller1.addEventListener( 'squeezeend', onSelectEnd ) 
+  controller1.addEventListener( 'selectstart', onSelectStart ) 
+  controller1.addEventListener( 'selectend', onSelectEnd ) 
+  
   scene.add( controller1 ) 
 
   controller2 = renderer.xr.getController( 1 ) 
