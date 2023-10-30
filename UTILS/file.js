@@ -55,8 +55,25 @@ export const updateStrandsFromDat = (dat_txt, mesh)=>{
     const line_count = lines.length
     for(let i = header_offset; i < line_count; i++){
         let line = lines[i].split(' ').map(parseFloat)
-        let p = oxcord_to_scene([line[0],line[1],line[2]])
-        dummy.position.set(p[0], p[1], p[2])
+
+        let p = new THREE.Vector3(line[0],line[1],line[2])
+        let a1 = new THREE.Vector3(line[3],line[4],line[5])
+        let a3 = new THREE.Vector3(line[4],line[5],line[6])
+        let a2 = a1.clone().cross(a3)
+
+        let bbPosition =  new THREE.Vector3(
+            p.x - (0.34 * a1.x + 0.3408 * a2.x),
+            p.y - (0.34 * a1.y + 0.3408 * a2.y),
+            p.z - (0.34 * a1.z + 0.3408 * a2.z)
+        );
+
+       
+        bbPosition.x /= 50 
+        bbPosition.y /= 50 
+        bbPosition.y += 1.3
+        bbPosition.z /= 50 
+        dummy.position.copy(bbPosition)
+       
         dummy.updateMatrix()
         mesh.setMatrixAt(i-header_offset, dummy.matrix)
     }
