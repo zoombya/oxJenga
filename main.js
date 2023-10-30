@@ -106,26 +106,30 @@ const initSceneFromJSON = (txt) => {
       // we keep elements on the scene 3 -> 5
       // I'll regret this deeply, but dat parsing is in order 
       strand.monomers.forEach(base=>{
-        let p = oxcord_to_scene(base.p)
-        dummy.position.set(p[0], p[1], p[2])
+        //let p = oxcord_to_scene(base.p)
+        //dummy.position.set(p[0], p[1], p[2])
+        let p = new THREE.Vector3(...base.p)
+        let a1 = new THREE.Vector3(...base.a1)
+        let a3 = new THREE.Vector3(...base.a3)
         
+        //console.log(base.p)
         // let p = new THREE.Vector3(line[0],line[1],line[2])
         // let a1 = new THREE.Vector3(line[3],line[4],line[5])
         // let a3 = new THREE.Vector3(line[4],line[5],line[6])
-        // let a2 = a1.clone().cross(a3)
+        let a2 = a1.clone().cross(a3)
 
-        // let bbPosition =  new THREE.Vector3(
-        //     p.x - (0.34 * a1.x + 0.3408 * a2.x),
-        //     p.y - (0.34 * a1.y + 0.3408 * a2.y),
-        //     p.z - (0.34 * a1.z + 0.3408 * a2.z)
-        // );
+        let bbPosition =  new THREE.Vector3(
+            p.x - (0.34 * a1.x + 0.3408 * a2.x),
+            p.y - (0.34 * a1.y + 0.3408 * a2.y),
+            p.z - (0.34 * a1.z + 0.3408 * a2.z)
+        );
 
        
-        // bbPosition.x /= 50 
-        // bbPosition.y /= 50 
-        // bbPosition.y += 1.3
-        // bbPosition.z /= 50 
-        // dummy.position.copy(bbPosition)
+        bbPosition.x /= 50 
+        bbPosition.y /= 50 
+        bbPosition.y += 1.3
+        bbPosition.z /= 50 
+        dummy.position.copy(bbPosition)
 
 
 
