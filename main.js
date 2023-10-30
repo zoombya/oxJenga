@@ -1,14 +1,53 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { VRButton } from 'three/addons/webxr/VRButton.js'
+//import { VRButton } from 'three/addons/webxr/VRButton.js'
+import { XRButton } from 'three/addons/webxr/XRButton.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'
 import { makeTopFile,makeDatFile,
          oxcord_to_scene,
          updateStrandsFromDat,
          makeFileDropable
          } from './UTILS/file.js'
-import {onSelectStart, onSelectEnd} from './UTILS/selection_handlers';
+//import {onSelectStart, onSelectEnd} from './UTILS/selection_handlers';
 import { establishConnection } from './UTILS/oxserve.js'
+
+
+
+function onSelectStart( event ) {
+
+  const controller = event.target 
+
+  const intersections = getIntersections( controller ) 
+
+  if ( intersections.length > 0 ) {
+
+    const intersection = intersections[ 0 ] 
+
+    const object = intersection.object 
+    object.material.emissive.b = 1 
+    controller.attach( object ) 
+
+    controller.userData.selected = object 
+
+  }
+
+}
+function onSelectEnd( event ) {
+
+  const controller = event.target 
+
+  if ( controller.userData.selected !== undefined ) {
+
+    const object = controller.userData.selected 
+    object.material.emissive.b = 0 
+    group.attach( object ) 
+
+    controller.userData.selected = undefined 
+
+  }
+
+
+}
 
 
 let container
@@ -91,6 +130,8 @@ const initSceneFromJSON = (txt) => {
 }
 const init = () => {
   container = document.createElement( 'div' )
+  container.style="background:none"
+
   document.body.appendChild( container )
 
   //let's see if our dat parser workzz
@@ -103,8 +144,9 @@ const init = () => {
   })
 
   scene = new THREE.Scene()
-  scene.background = new THREE.Color( 0x808080 )
-
+  //scene.background = new THREE.Color( 0x808080 )
+scene.background = new THREE.Color(0x00000,0)
+//scene.background.alpha=1;
   camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 )
   camera.position.set( 0, 1.6, 5 )
 
@@ -127,6 +169,7 @@ const init = () => {
 
   const light = new THREE.DirectionalLight( 0xffffff )
   light.position.set( 0, 6, 0 )
+  light.intensity=10
   light.castShadow = true
   light.shadow.camera.top = 2
   light.shadow.camera.bottom = - 2
@@ -136,7 +179,10 @@ const init = () => {
   scene.add( light )
 
   //Load up our model here and establish oxServe
-  fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
+  // fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
+  //   [strands, n_elements] = initSceneFromJSON(txt)
+  // })
+  fetch("./monohole_1b.oxview").then((resp)=>resp.text()).then((txt) =>{
     [strands, n_elements] = initSceneFromJSON(txt)
   })
   // read from nanobase might be subject to XSSS scripting issues ...
@@ -147,7 +193,7 @@ const init = () => {
   group = new THREE.Group()
   scene.add( group )
 
-  renderer = new THREE.WebGLRenderer( { antialias: true } ) 
+  renderer = new THREE.WebGLRenderer( { antialias: true , alpha: true} ) 
   renderer.setPixelRatio( window.devicePixelRatio ) 
   renderer.setSize( window.innerWidth, window.innerHeight ) 
   renderer.outputEncoding = THREE.sRGBEncoding 
@@ -155,7 +201,7 @@ const init = () => {
   renderer.xr.enabled = true 
   container.appendChild( renderer.domElement ) 
 
-  document.body.appendChild( VRButton.createButton( renderer ) ) 
+  document.body.appendChild( XRButton.createButton( renderer ) ) 
 
   // controllers
 
@@ -198,7 +244,8 @@ const init = () => {
 
 
   //work on oxserve stuff 
-  //let socket = establishConnection()
+  let socket = establishConnection()
+
   //console.log(socket)
 }
 
