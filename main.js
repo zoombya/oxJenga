@@ -9,8 +9,10 @@ import { makeTopFile,makeDatFile,
          makeFileDropable
          } from './UTILS/file.js'
 //import {onSelectStart, onSelectEnd} from './UTILS/selection_handlers';
-import { establishConnection } from './UTILS/oxserve.js'
 
+
+import { establishConnection } from './UTILS/oxserve.js'
+import { XREstimatedLight } from 'three/addons/webxr/XREstimatedLight.js'
 
 
 function onSelectStart( event ) {
@@ -94,7 +96,7 @@ const initSceneFromJSON = (txt) => {
   const sgeometry = new THREE.SphereGeometry(0.015,10,) 
   const material = new THREE.MeshStandardMaterial( {
      roughness: 0.7,
-     metalness: 0.0
+     metalness: 0.5
    }) 
 
   instancedMesh = new THREE.InstancedMesh(sgeometry,material,n_monomers)
@@ -164,7 +166,8 @@ const init = () => {
     })
   })
 
-  scene = new THREE.Scene()
+scene = new THREE.Scene()
+
   //scene.background = new THREE.Color( 0x808080 )
 scene.background = new THREE.Color(0x00000,0)
 //scene.background.alpha=1;
@@ -175,30 +178,33 @@ scene.background = new THREE.Color(0x00000,0)
   controls.target.set( 0, 1.6, 0 )
   controls.update()
 
-  const floorGeometry = new THREE.PlaneGeometry( 4, 4 )
-  const floorMaterial = new THREE.MeshStandardMaterial( {
-    color: 0xeeeeee,
-    roughness: 1.0,
-    metalness: 0.0
-  })
+  // const floorGeometry = new THREE.PlaneGeometry( 4, 4 )
+  // const floorMaterial = new THREE.MeshStandardMaterial( {
+  //   color: 0xeeeeee,
+  //   roughness: 1.0,
+  //   metalness: 0.0
+  // })
   // const floor = new THREE.Mesh( floorGeometry, floorMaterial )
   // floor.rotation.x = - Math.PI / 2
   // floor.receiveShadow = true
   // scene.add( floor )
+  
   let hemilight =  new THREE.HemisphereLight( 0x808080, 0x606060 ) 
-  hemilight.intensity=5.5
+  hemilight.intensity=3
   scene.add(hemilight)
 
-  const light = new THREE.DirectionalLight( 0xffffff )
-  light.position.set( 0, 6, 0 )
-  light.intensity=6
-  light.castShadow = true
-  light.shadow.camera.top = 2
-  light.shadow.camera.bottom = - 2
-  light.shadow.camera.right = 2
-  light.shadow.camera.left = - 2
-  light.shadow.mapSize.set( 4096, 4096 )
-  scene.add( light )
+  
+
+  // const light = new THREE.DirectionalLight( 0xffffff )
+  // light.position.set( 0, 6, 0 )
+  // light.intensity=6
+  // light.castShadow = true
+  // light.shadow.camera.top = 2
+  // light.shadow.camera.bottom = - 2
+  // light.shadow.camera.right = 2
+  // light.shadow.camera.left = - 2
+  // light.shadow.mapSize.set( 2048, 2048 )
+  // scene.add( light )
 
   //Load up our model here and establish oxServe
   // fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
@@ -218,12 +224,41 @@ scene.background = new THREE.Color(0x00000,0)
   renderer = new THREE.WebGLRenderer( { antialias: true , alpha: true} ) 
   renderer.setPixelRatio( window.devicePixelRatio ) 
   renderer.setSize( window.innerWidth, window.innerHeight ) 
-  renderer.outputEncoding = THREE.sRGBEncoding 
   renderer.shadowMap.enabled = true 
   renderer.xr.enabled = true 
   container.appendChild( renderer.domElement ) 
 
   document.body.appendChild( XRButton.createButton( renderer ) ) 
+
+
+
+// Don't add the XREstimatedLight to the scene initially.
+// It doesn't have any estimated lighting values until an AR session starts.
+
+const xrLight = new XREstimatedLight( renderer );
+
+xrLight.addEventListener( 'estimationstart', () => {
+
+// Swap the default light out for the estimated one one we start getting some estimated values.
+scene.add( xrLight );
+scene.remove( hemilight );
+
+// The estimated lighting also provides an environment cubemap, which we can apply here.
+if ( xrLight.environment ) {
+
+	scene.environment = xrLight.environment;
+}
+
+} );
+
+xrLight.addEventListener( 'estimationend', () => {
+  // Swap the lights back when we stop receiving estimated values.
+  scene.add( hemilight );
+  scene.remove( xrLight );
+
+  // Revert back to the default environment.
+  scene.environment = defaultEnvironment;
+} );
 
   // controllers
 
