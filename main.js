@@ -104,7 +104,12 @@ const initSceneFromJSON = (txt) => {
   instancedMesh.receiveShadow = true
   const dummy = new THREE.Object3D()
   let bid = 0
+
+  // make sure we have no items in the scene group
+  while (group.children.length != 0 )
+  group.children.pop()
   
+
   strands.forEach((strand, id)=>{
       // we keep elements on the scene 3 -> 5
       // I'll regret this deeply, but dat parsing is in order 
@@ -137,6 +142,7 @@ const initSceneFromJSON = (txt) => {
     })
   })
   group.add(instancedMesh)
+
 
   // play with the group offset, rather than with the mesh offset
   group.position.y += .5
@@ -224,7 +230,21 @@ scene.background = new THREE.Color(0x00000,0)
   // })
   fetch("./monohole_1b.oxview").then((resp)=>resp.text()).then((txt) =>{
     [strands, n_elements] = initSceneFromJSON(txt)
+
+    fetch("./moon.oxview").then((resp)=>resp.text()).then((txt)=>{
+      initSceneFromJSON(txt)
+
+      fetch("./hairygami.oxview").then((resp)=>resp.text()).then((txt)=>{
+        initSceneFromJSON(txt)
+      })
+    })
+
   })
+
+
+
+
+
   // read from nanobase might be subject to XSSS scripting issues ...
   // need to look more into it, but even oxview.org can't fetch in local dev cycle 
 
