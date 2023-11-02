@@ -239,7 +239,8 @@ scene.background = new THREE.Color(0x00000,0)
     "monohole_1b.oxview",
     "moon.oxview",
     "meta.oxview",
-    "gated-channel.oxview"
+    "gated-channel.oxview",
+    "plane.oxview"
   ]
   //get random design
   fetch(designs[Math.floor(Math.random()*designs.length)]).then((resp)=>resp.text()).then(initSceneFromJSON)
