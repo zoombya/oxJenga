@@ -93,7 +93,7 @@ const initSceneFromJSON = (txt) => {
     n_monomers += (strand.end5 - strand.end3 + 1)
   })
   console.log(n_monomers)
-  const sgeometry = new THREE.SphereGeometry(0.015,10,) 
+  const sgeometry = new THREE.SphereGeometry(0.015,6,6) 
   const material = new THREE.MeshStandardMaterial( {
      roughness: 0.7,
      metalness: 0.5
@@ -108,16 +108,20 @@ const initSceneFromJSON = (txt) => {
   // make sure we have no items in the scene group
   while (group.children.length != 0 )
   group.children.pop()
-  
+
+  let round = (v)=>{
+    return v.toFixed(3);
+  }
 
   strands.forEach((strand, id)=>{
       // we keep elements on the scene 3 -> 5
       // I'll regret this deeply, but dat parsing is in order 
       strand.monomers.forEach(base=>{
+        //base.p = base.p.map(Math.round)
 
-        let p = new THREE.Vector3(...base.p)
-        let a1 = new THREE.Vector3(...base.a1)
-        let a3 = new THREE.Vector3(...base.a3)
+        let p = new THREE.Vector3(...base.p.map(round))
+        let a1 = new THREE.Vector3(...base.a1.map(round))
+        let a3 = new THREE.Vector3(...base.a3.map(round))
         let a2 = a1.clone().cross(a3)
 
         let bbPosition =  new THREE.Vector3(
