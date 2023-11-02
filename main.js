@@ -140,10 +140,10 @@ const initSceneFromJSON = (txt) => {
   group.add(instancedMesh)
 
   // play with the group offset, rather than with the mesh offset
-  group.position.y += 1.5
-  group.position.z -= 2
+  group.position.y += .5
+  group.position.z -= 1.5
   group.rotation.y += Math.PI /2
-  group.rotation.z -= Math.PI /3
+  group.rotation.z -= Math.PI /6
 
   //generate it's description in oxDNA world
   let top_file = makeTopFile(strands, n_monomers)
