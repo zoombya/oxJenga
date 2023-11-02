@@ -70,7 +70,6 @@ export const updateStrandsFromDat = (dat_txt, mesh)=>{
        
         bbPosition.x /= 50 
         bbPosition.y /= 50 
-        //bbPosition.y += 1.3
         bbPosition.z /= 50 
         dummy.position.copy(bbPosition)
        

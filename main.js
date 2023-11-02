@@ -124,7 +124,6 @@ const initSceneFromJSON = (txt) => {
        
         bbPosition.x /= 50 
         bbPosition.y /= 50 
-        //bbPosition.y += 1
         bbPosition.z /= 50 
         dummy.position.copy(bbPosition)
 
@@ -148,10 +147,13 @@ const initSceneFromJSON = (txt) => {
   //generate it's description in oxDNA world
   let top_file = makeTopFile(strands, n_monomers)
   let dat_file = makeDatFile(strands, box)
+  
   // let's establish oxServe connection and update cycles here 
-  ox_socket = establishConnection(instancedMesh, top_file, dat_file)
-  console.log(ox_socket)
-  window.socket = ox_socket
+  // We block the connection for now
+  //ox_socket = establishConnection(instancedMesh, top_file, dat_file)
+  //console.log(ox_socket)
+  //window.socket = ox_socket
+
   //ox_socket.start_simulation()
 
 
@@ -314,7 +316,7 @@ xrLight.addEventListener( 'estimationend', () => {
 
 
   //work on oxserve stuff 
-  let socket = establishConnection()
+  //let socket = establishConnection()
 
   //console.log(socket)
 }
