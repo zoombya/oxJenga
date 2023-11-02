@@ -228,18 +228,30 @@ scene.background = new THREE.Color(0x00000,0)
   // fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
   //   [strands, n_elements] = initSceneFromJSON(txt)
   // })
-  fetch("./monohole_1b.oxview").then((resp)=>resp.text()).then((txt) =>{
-    [strands, n_elements] = initSceneFromJSON(txt)
+  let designs = [
+    "6-bar.oxview",
+    "hairygami.oxview",
+    "Leaf.oxview",
+    "monohole_1b.oxview",
+    "moon.oxview",
+    "meta.oxview",
+    "gated-channel.oxview"
+  ]
+  //get random design
+  fetch(designs[Math.floor(Math.random()*designs.length)]).then((resp)=>resp.text()).then(initSceneFromJSON)
+  
+  // fetch("./monohole_1b.oxview").then((resp)=>resp.text()).then((txt) =>{
+  //   [strands, n_elements] = initSceneFromJSON(txt)
 
-    fetch("./moon.oxview").then((resp)=>resp.text()).then((txt)=>{
-      initSceneFromJSON(txt)
+  //   fetch("./moon.oxview").then((resp)=>resp.text()).then((txt)=>{
+  //     initSceneFromJSON(txt)
 
-      fetch("./hairygami.oxview").then((resp)=>resp.text()).then((txt)=>{
-        initSceneFromJSON(txt)
-      })
-    })
+  //     fetch("./hairygami.oxview").then((resp)=>resp.text()).then((txt)=>{
+  //       initSceneFromJSON(txt)
+  //     })
+  //   })
 
-  })
+  // })
 
 
 
