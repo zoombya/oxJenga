@@ -189,7 +189,7 @@ scene = new THREE.Scene()
   //scene.background = new THREE.Color( 0x808080 )
 scene.background = new THREE.Color(0x00000,0)
 //scene.background.alpha=1;
-  camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 )
+  camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 100 )
   camera.position.set( 0, 1.6, 5 )
 
   controls = new OrbitControls( camera, container )
@@ -240,7 +240,8 @@ scene.background = new THREE.Color(0x00000,0)
     "moon.oxview",
     "meta.oxview",
     "gated-channel.oxview",
-    "gripper.oxview"
+    "gripper.oxview",
+    "teather.oxview"
   ]
   //get random design
   let s = designs[Math.floor(Math.random()*designs.length)]
