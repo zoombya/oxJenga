@@ -4,8 +4,8 @@ export var relax_scenario = {
     "steps": 1000000,
     "salt_concentration": 1,
     "interaction_type": "DNA2",
-    "print_conf_interval": 500,
-    "print_energy_every": 500,
+    "print_conf_interval": 1000,
+    "print_energy_every": 1000,
     "thermostat": "john",
     "dt": 0.005,
     "diff_coeff": 3,
@@ -33,7 +33,7 @@ export var relax_scenario = {
     "trajectory_file": "/dev/null",
     "energy_file": "energy.dat",
     "lastconf_file": "last_conf.dat",
-    "max_io": 10000,
+    "max_io": 100000,
     "bussi_tau": 1,
     "seq_dep_file": "oxDNA2_sequence_dependent_parameters.txt"
 }

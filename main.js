@@ -124,7 +124,7 @@ const initSceneFromJSON = (txt) => {
        
         bbPosition.x /= 50 
         bbPosition.y /= 50 
-        bbPosition.y += 1
+        //bbPosition.y += 1
         bbPosition.z /= 50 
         dummy.position.copy(bbPosition)
 
@@ -138,6 +138,12 @@ const initSceneFromJSON = (txt) => {
     })
   })
   group.add(instancedMesh)
+
+  // play with the group offset, rather than with the mesh offset
+  group.position.y += 1.5
+  group.position.z -= 2
+  group.rotation.y += Math.PI /2
+  group.rotation.z -= Math.PI /3
 
   //generate it's description in oxDNA world
   let top_file = makeTopFile(strands, n_monomers)
@@ -190,21 +196,25 @@ scene.background = new THREE.Color(0x00000,0)
   // scene.add( floor )
   
   let hemilight =  new THREE.HemisphereLight( 0x808080, 0x606060 ) 
-  hemilight.intensity=3
-  scene.add(hemilight)
+  hemilight.intensity=5
+  //scene.add(hemilight)
 
   
 
-  // const light = new THREE.DirectionalLight( 0xffffff )
-  // light.position.set( 0, 6, 0 )
-  // light.intensity=6
-  // light.castShadow = true
-  // light.shadow.camera.top = 2
-  // light.shadow.camera.bottom = - 2
-  // light.shadow.camera.right = 2
-  // light.shadow.camera.left = - 2
-  // light.shadow.mapSize.set( 2048, 2048 )
-  // scene.add( light )
+  const light = new THREE.DirectionalLight( 0xffffff )
+  light.position.set( 0, 6, 0 )
+  light.intensity=6
+  light.castShadow = true
+  light.shadow.camera.top = 2
+  light.shadow.camera.bottom = - 2
+  light.shadow.camera.right = 2
+  light.shadow.camera.left = - 2
+  light.shadow.mapSize.set( 2048, 2048 )
+  
+  let defaultLight = new THREE.Group()
+  defaultLight.add(hemilight)
+  defaultLight.add(light)
+  scene.add(defaultLight)
 
   //Load up our model here and establish oxServe
   // fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
@@ -241,7 +251,7 @@ xrLight.addEventListener( 'estimationstart', () => {
 
 // Swap the default light out for the estimated one one we start getting some estimated values.
 scene.add( xrLight );
-scene.remove( hemilight );
+scene.remove( defaultLight );
 
 // The estimated lighting also provides an environment cubemap, which we can apply here.
 if ( xrLight.environment ) {
@@ -253,7 +263,7 @@ if ( xrLight.environment ) {
 
 xrLight.addEventListener( 'estimationend', () => {
   // Swap the lights back when we stop receiving estimated values.
-  scene.add( hemilight );
+  scene.add( defaultLight );
   scene.remove( xrLight );
 
   // Revert back to the default environment.
