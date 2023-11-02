@@ -240,10 +240,12 @@ scene.background = new THREE.Color(0x00000,0)
     "moon.oxview",
     "meta.oxview",
     "gated-channel.oxview",
-    "plane.oxview"
+    "gripper.oxview"
   ]
   //get random design
-  fetch(designs[Math.floor(Math.random()*designs.length)]).then((resp)=>resp.text()).then(initSceneFromJSON)
+  let s = designs[Math.floor(Math.random()*designs.length)]
+  console.log(s)
+  fetch(s).then((resp)=>resp.text()).then(initSceneFromJSON)
   
   // fetch("./monohole_1b.oxview").then((resp)=>resp.text()).then((txt) =>{
   //   [strands, n_elements] = initSceneFromJSON(txt)
