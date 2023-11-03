@@ -8,11 +8,16 @@ import { makeTopFile,makeDatFile,
          updateStrandsFromDat,
          makeFileDropable
          } from './UTILS/file.js'
+
+import ThreeMeshUI from 'three-mesh-ui';
 //import {onSelectStart, onSelectEnd} from './UTILS/selection_handlers';
 
 
 import { establishConnection } from './UTILS/oxserve.js'
 import { XREstimatedLight } from 'three/addons/webxr/XREstimatedLight.js'
+
+import FontJSON from  "./UTILS/fonts/Roboto-msdf.json"
+import FontImage from "./UTILS/fonts/Roboto-msdf.png"
 
 
 function onSelectStart( event ) {
@@ -149,8 +154,8 @@ const initSceneFromJSON = (txt) => {
 
 
   // play with the group offset, rather than with the mesh offset
-  group.position.y += .5
-  group.position.z -= 1.5
+  group.position.y += 1.5
+  group.position.z -= 2.5
   group.rotation.y += Math.PI /2
   group.rotation.z -= Math.PI /6
 
@@ -273,6 +278,129 @@ scene.background = new THREE.Color(0x00000,0)
   group = new THREE.Group()
   scene.add( group )
 
+
+  /// Make UI 
+{
+  const container = new ThreeMeshUI.Block( {
+		justifyContent: 'center',
+		contentDirection: 'row-reverse',
+		fontFamily: FontJSON,
+		fontTexture: FontImage,
+		fontSize: 0.07,
+		padding: 0.02,
+		borderRadius: 0.11
+	} );
+
+	container.position.set( 0, 0.6, -1.2 );
+	container.rotation.x = -0.55;
+	scene.add( container );
+
+
+	// BUTTONS
+
+	// We start by creating objects containing options that we will use with the two buttons,
+	// in order to write less code.
+
+	const buttonOptions = {
+		width: 0.4,
+		height: 0.15,
+		justifyContent: 'center',
+		offset: 0.05,
+		margin: 0.02,
+		borderRadius: 0.075
+	};
+
+	// Options for component.setupState().
+	// It must contain a 'state' parameter, which you will refer to with component.setState( 'name-of-the-state' ).
+
+	const hoveredStateAttributes = {
+		state: 'hovered',
+		attributes: {
+			offset: 0.035,
+			backgroundColor: new THREE.Color( 0x999999 ),
+			backgroundOpacity: 1,
+			fontColor: new THREE.Color( 0xffffff )
+		},
+	};
+
+	const idleStateAttributes = {
+		state: 'idle',
+		attributes: {
+			offset: 0.035,
+			backgroundColor: new THREE.Color( 0x666666 ),
+			backgroundOpacity: 0.3,
+			fontColor: new THREE.Color( 0xffffff )
+		},
+	};
+
+	// Buttons creation, with the options objects passed in parameters.
+
+	const buttonNext = new ThreeMeshUI.Block( buttonOptions );
+	const buttonPrevious = new ThreeMeshUI.Block( buttonOptions );
+
+	// Add text to buttons
+
+	buttonNext.add(
+		new ThreeMeshUI.Text( { content: 'next' } )
+	);
+
+	buttonPrevious.add(
+		new ThreeMeshUI.Text( { content: 'previous' } )
+	);
+
+
+    	// Create states for the buttons.
+	// In the loop, we will call component.setState( 'state-name' ) when mouse hover or click
+
+	const selectedAttributes = {
+		offset: 0.02,
+		backgroundColor: new THREE.Color( 0x777777 ),
+		fontColor: new THREE.Color( 0x222222 )
+	};
+
+	buttonNext.setupState( {
+		state: 'selected',
+		attributes: selectedAttributes,
+		onSet: () => {
+
+      console.log("pressed next")
+			//currentMesh = ( currentMesh + 1 ) % 3;
+			//showMesh( currentMesh );
+
+		}
+	} );
+	buttonNext.setupState( hoveredStateAttributes );
+	buttonNext.setupState( idleStateAttributes );
+
+	//
+
+	buttonPrevious.setupState( {
+		state: 'selected',
+		attributes: selectedAttributes,
+		onSet: () => {
+
+      console.log("pressed previous")
+			//currentMesh -= 1;
+			//if ( currentMesh < 0 ) currentMesh = 2;
+			//showMesh( currentMesh );
+
+		}
+	} );
+	buttonPrevious.setupState( hoveredStateAttributes );
+	buttonPrevious.setupState( idleStateAttributes );
+
+	//
+
+	container.add( buttonNext, buttonPrevious );
+
+}
+
+
+
+
+
+
+
   renderer = new THREE.WebGLRenderer( { antialias: true , alpha: true} ) 
   renderer.setPixelRatio( window.devicePixelRatio ) 
   renderer.setSize( window.innerWidth, window.innerHeight ) 
@@ -377,8 +505,8 @@ function getIntersections( controller ) {
   raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld ) 
   raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( tempMatrix ) 
 
+  //return raycaster.intersectObjects( group.children, false ) 
   return raycaster.intersectObjects( group.children, false ) 
-
 }
 
 function intersectObjects( controller ) {
@@ -396,6 +524,24 @@ function intersectObjects( controller ) {
 
     // const instanceId = intersection[ 0 ].instanceId;
     // console.log("instanceID", instanceId)
+
+    // Update targeted button state (if any)
+
+    if ( intersection && intersection.object.isUI ) {
+
+      if ( selectState ) {
+
+        // Component.setState internally call component.set with the options you defined in component.setupState
+        intersect.object.setState( 'selected' );
+
+      } else {
+
+        // Component.setState internally call component.set with the options you defined in component.setupState
+        intersect.object.setState( 'hovered' );
+
+      }
+
+    }
 
 
     const object = intersection.object 
@@ -448,7 +594,9 @@ function render() {
 
   intersectObjects( controller1) 
   intersectObjects( controller2) 
-  
+
+  ThreeMeshUI.update();
+
 
   renderer.render( scene, camera ) 
 
