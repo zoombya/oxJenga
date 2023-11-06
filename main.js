@@ -191,6 +191,7 @@ const init = () => {
 
 scene = new THREE.Scene()
 
+
   //scene.background = new THREE.Color( 0x808080 )
 scene.background = new THREE.Color(0x00000,0)
 //scene.background.alpha=1;
@@ -505,9 +506,12 @@ function getIntersections( controller ) {
   raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld ) 
   raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( tempMatrix ) 
 
-  //return raycaster.intersectObjects( group.children, false ) 
-  return raycaster.intersectObjects( group.children, false ) 
+  //return raycaster.intersectObjects( group.children, false )
+  console.log(scene.children)
+  return raycaster.intersectObjects(group.children,false)
+  //return raycaster.intersectObjects( scene.children, false ) 
 }
+
 
 function intersectObjects( controller ) {
 
@@ -526,7 +530,7 @@ function intersectObjects( controller ) {
     // console.log("instanceID", instanceId)
 
     // Update targeted button state (if any)
-
+    console.log(intersection)
     if ( intersection && intersection.object.isUI ) {
 
       if ( selectState ) {
