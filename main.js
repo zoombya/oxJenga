@@ -9,7 +9,6 @@ import { makeTopFile,makeDatFile,
          makeFileDropable
          } from './UTILS/file.js'
 
-import ThreeMeshUI from 'three-mesh-ui';
 //import {onSelectStart, onSelectEnd} from './UTILS/selection_handlers';
 
 
@@ -87,17 +86,17 @@ const strandColorsLen = strandColors.length
 const initSceneFromJSON = (txt) => {
   // we recieve an oxView file, so it's json
   const json_data = JSON.parse(txt)
-  console.log(json_data)
+  //console.log(json_data)
 
   box = json_data.box
-  console.log(box)
+  //console.log(box)
 
   const strands = json_data.systems[0].strands 
   let n_monomers = 0 
   strands.forEach(strand=>{
     n_monomers += (strand.end5 - strand.end3 + 1)
   })
-  console.log(n_monomers)
+  //console.log(n_monomers)
   const sgeometry = new THREE.SphereGeometry(0.015,6,6) 
   const material = new THREE.MeshStandardMaterial( {
      roughness: 0.7,
@@ -111,8 +110,18 @@ const initSceneFromJSON = (txt) => {
   let bid = 0
 
   // make sure we have no items in the scene group
-  while (group.children.length != 0 )
-  group.children.pop()
+  // while (group.children.length != 0 )
+  // group.children.pop()
+  // const group = /* your Three.js group */;
+  while(group.children.length > 0) {
+      let child = group.children[0];
+      group.remove(child);
+      // Optional: Dispose geometry and material if they are no longer needed
+      if(child.geometry) child.geometry.dispose();
+      if(child.material) child.material.dispose();
+  } 
+
+
 
   let round = (v)=>{
     return v.toFixed(3);
@@ -135,7 +144,7 @@ const initSceneFromJSON = (txt) => {
             p.z - (0.34 * a1.z + 0.3408 * a2.z)
         );
 
-       
+        //rescale everything 
         bbPosition.x /= 50 
         bbPosition.y /= 50 
         bbPosition.z /= 50 
@@ -152,12 +161,6 @@ const initSceneFromJSON = (txt) => {
   })
   group.add(instancedMesh)
 
-
-  // play with the group offset, rather than with the mesh offset
-  group.position.y += 1.5
-  group.position.z -= 2.5
-  group.rotation.y += Math.PI /2
-  group.rotation.z -= Math.PI /6
 
   //generate it's description in oxDNA world
   let top_file = makeTopFile(strands, n_monomers)
@@ -250,9 +253,45 @@ scene.background = new THREE.Color(0x00000,0)
     "teather.oxview"
   ]
   //get random design
-  let s = designs[Math.floor(Math.random()*designs.length)]
-  console.log(s)
-  fetch(s).then((resp)=>resp.text()).then(initSceneFromJSON)
+
+  class DesignStorage{
+    designs = [
+      "6-bar.oxview",
+      "hairygami.oxview",
+      "Leaf.oxview",
+      "monohole_1b.oxview",
+      "moon.oxview",
+      "meta.oxview",
+      "gated-channel.oxview",
+      "gripper.oxview",
+      "teather.oxview"
+    ] 
+    constructor(){
+      this.counter = 0
+    }
+    getNext(){
+      this.counter += 1 
+      if (this.counter>= this.designs.length) this.counter = 0
+      return this.designs[this.counter]
+    }
+    getPrev(){
+      this.counter -=1 
+      if (this.counter<0) this.counter = this.designs.length -1
+      return this.designs[this.counter]
+    }
+    getRand(){
+      this.counter = Math.floor(Math.random()*designs.length)
+      return this.designs[this.counter]
+    }
+
+  }
+
+  //let s = designs[Math.floor(Math.random()*designs.length)]
+  //console.log(s)
+  
+let designStorage = new DesignStorage()
+//load up first design
+fetch(designStorage.getRand()).then((resp)=>resp.text()).then(initSceneFromJSON)
   
   // fetch("./monohole_1b.oxview").then((resp)=>resp.text()).then((txt) =>{
   //   [strands, n_elements] = initSceneFromJSON(txt)
@@ -277,127 +316,14 @@ scene.background = new THREE.Color(0x00000,0)
   // we'll use the group to add stuff as this is 
   // allows for grabbing the entire thing 
   group = new THREE.Group()
+
+  // play with the group offset, rather than with the mesh offset
+  group.position.y += 1.5
+  group.position.z -= 2.5
+  group.rotation.y += Math.PI /2
+  group.rotation.z -= Math.PI /6
+
   scene.add( group )
-
-
-  /// Make UI 
-{
-  const container = new ThreeMeshUI.Block( {
-		justifyContent: 'center',
-		contentDirection: 'row-reverse',
-		fontFamily: FontJSON,
-		fontTexture: FontImage,
-		fontSize: 0.07,
-		padding: 0.02,
-		borderRadius: 0.11
-	} );
-
-	container.position.set( 0, 0.6, -1.2 );
-	container.rotation.x = -0.55;
-	scene.add( container );
-
-
-	// BUTTONS
-
-	// We start by creating objects containing options that we will use with the two buttons,
-	// in order to write less code.
-
-	const buttonOptions = {
-		width: 0.4,
-		height: 0.15,
-		justifyContent: 'center',
-		offset: 0.05,
-		margin: 0.02,
-		borderRadius: 0.075
-	};
-
-	// Options for component.setupState().
-	// It must contain a 'state' parameter, which you will refer to with component.setState( 'name-of-the-state' ).
-
-	const hoveredStateAttributes = {
-		state: 'hovered',
-		attributes: {
-			offset: 0.035,
-			backgroundColor: new THREE.Color( 0x999999 ),
-			backgroundOpacity: 1,
-			fontColor: new THREE.Color( 0xffffff )
-		},
-	};
-
-	const idleStateAttributes = {
-		state: 'idle',
-		attributes: {
-			offset: 0.035,
-			backgroundColor: new THREE.Color( 0x666666 ),
-			backgroundOpacity: 0.3,
-			fontColor: new THREE.Color( 0xffffff )
-		},
-	};
-
-	// Buttons creation, with the options objects passed in parameters.
-
-	const buttonNext = new ThreeMeshUI.Block( buttonOptions );
-	const buttonPrevious = new ThreeMeshUI.Block( buttonOptions );
-
-	// Add text to buttons
-
-	buttonNext.add(
-		new ThreeMeshUI.Text( { content: 'next' } )
-	);
-
-	buttonPrevious.add(
-		new ThreeMeshUI.Text( { content: 'previous' } )
-	);
-
-
-    	// Create states for the buttons.
-	// In the loop, we will call component.setState( 'state-name' ) when mouse hover or click
-
-	const selectedAttributes = {
-		offset: 0.02,
-		backgroundColor: new THREE.Color( 0x777777 ),
-		fontColor: new THREE.Color( 0x222222 )
-	};
-
-	buttonNext.setupState( {
-		state: 'selected',
-		attributes: selectedAttributes,
-		onSet: () => {
-
-      console.log("pressed next")
-			//currentMesh = ( currentMesh + 1 ) % 3;
-			//showMesh( currentMesh );
-
-		}
-	} );
-	buttonNext.setupState( hoveredStateAttributes );
-	buttonNext.setupState( idleStateAttributes );
-
-	//
-
-	buttonPrevious.setupState( {
-		state: 'selected',
-		attributes: selectedAttributes,
-		onSet: () => {
-
-      console.log("pressed previous")
-			//currentMesh -= 1;
-			//if ( currentMesh < 0 ) currentMesh = 2;
-			//showMesh( currentMesh );
-
-		}
-	} );
-	buttonPrevious.setupState( hoveredStateAttributes );
-	buttonPrevious.setupState( idleStateAttributes );
-
-	//
-
-	container.add( buttonNext, buttonPrevious );
-
-}
-
-
-
 
 
 
@@ -446,6 +372,9 @@ xrLight.addEventListener( 'estimationend', () => {
   controller1 = renderer.xr.getController( 0 ) 
   // controller1.addEventListener( 'squeezestart', onSelectStart ) 
   // controller1.addEventListener( 'squeezeend', onSelectEnd ) 
+  
+  //fetch(designStorage.getRand()).then((resp)=>resp.text()).then(initSceneFromJSON)
+
   controller1.addEventListener( 'selectstart', onSelectStart ) 
   controller1.addEventListener( 'selectend', onSelectEnd ) 
   
@@ -466,6 +395,11 @@ xrLight.addEventListener( 'estimationend', () => {
   controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) ) 
   scene.add( controllerGrip2 ) 
 
+  
+  //handle new design loading 
+  controller1.addEventListener('squeezeend',()=>fetch(designStorage.getPrev()).then((resp)=>resp.text()).then(initSceneFromJSON))
+  controller2.addEventListener('squeezeend',()=>fetch(designStorage.getNext()).then((resp)=>resp.text()).then(initSceneFromJSON))
+   
   //
 
   const geometry = new THREE.BufferGeometry().setFromPoints( [ new THREE.Vector3( 0, 0, 0 ), new THREE.Vector3( 0, 0, - 1 ) ] ) 
@@ -507,7 +441,7 @@ function getIntersections( controller ) {
   raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( tempMatrix ) 
 
   //return raycaster.intersectObjects( group.children, false )
-  console.log(scene.children)
+  
   return raycaster.intersectObjects(group.children,false)
   //return raycaster.intersectObjects( scene.children, false ) 
 }
@@ -598,9 +532,6 @@ function render() {
 
   intersectObjects( controller1) 
   intersectObjects( controller2) 
-
-  ThreeMeshUI.update();
-
 
   renderer.render( scene, camera ) 
 
