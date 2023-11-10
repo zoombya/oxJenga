@@ -18,9 +18,9 @@ import { XREstimatedLight } from 'three/addons/webxr/XREstimatedLight.js'
 import FontJSON from  "./UTILS/fonts/Roboto-msdf.json"
 import FontImage from "./UTILS/fonts/Roboto-msdf.png"
 
-
+let selection_state = false 
 function onSelectStart( event ) {
-
+  selection_state = true
   const controller = event.target 
 
   const intersections = getIntersections( controller ) 
@@ -49,6 +49,7 @@ function onSelectEnd( event ) {
     group.attach( object ) 
 
     controller.userData.selected = undefined 
+    selection_state = false
 
   }
 
@@ -241,17 +242,17 @@ scene.background = new THREE.Color(0x00000,0)
   // fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
   //   [strands, n_elements] = initSceneFromJSON(txt)
   // })
-  let designs = [
-    "6-bar.oxview",
-    "hairygami.oxview",
-    "Leaf.oxview",
-    "monohole_1b.oxview",
-    "moon.oxview",
-    "meta.oxview",
-    "gated-channel.oxview",
-    "gripper.oxview",
-    "teather.oxview"
-  ]
+  // let designs = [
+  //   "6-bar.oxview",
+  //   "hairygami.oxview",
+  //   "Leaf.oxview",
+  //   "monohole_1b.oxview",
+  //   "moon.oxview",
+  //   "meta.oxview",
+  //   "gated-channel.oxview",
+  //   "gripper.oxview",
+  //   "teather.oxview"
+  // ]
   //get random design
 
   class DesignStorage{
@@ -280,7 +281,7 @@ scene.background = new THREE.Color(0x00000,0)
       return this.designs[this.counter]
     }
     getRand(){
-      this.counter = Math.floor(Math.random()*designs.length)
+      this.counter = Math.floor(Math.random()*this.designs.length)
       return this.designs[this.counter]
     }
 
@@ -397,8 +398,14 @@ xrLight.addEventListener( 'estimationend', () => {
 
   
   //handle new design loading 
-  controller1.addEventListener('squeezeend',()=>fetch(designStorage.getPrev()).then((resp)=>resp.text()).then(initSceneFromJSON))
-  controller2.addEventListener('squeezeend',()=>fetch(designStorage.getNext()).then((resp)=>resp.text()).then(initSceneFromJSON))
+  controller1.addEventListener('squeezeend',()=>{
+    if(!selection_state)
+      fetch(designStorage.getPrev()).then((resp)=>resp.text()).then(initSceneFromJSON)
+  })
+  controller2.addEventListener('squeezeend',()=>{
+    if(!selection_state)
+      fetch(designStorage.getNext()).then((resp)=>resp.text()).then(initSceneFromJSON)
+  })
    
   //
 
@@ -464,22 +471,22 @@ function intersectObjects( controller ) {
     // console.log("instanceID", instanceId)
 
     // Update targeted button state (if any)
-    console.log(intersection)
-    if ( intersection && intersection.object.isUI ) {
+    // console.log(intersection)
+    // if ( intersection && intersection.object.isUI ) {
 
-      if ( selectState ) {
+    //   if ( selectState ) {
 
-        // Component.setState internally call component.set with the options you defined in component.setupState
-        intersect.object.setState( 'selected' );
+    //     // Component.setState internally call component.set with the options you defined in component.setupState
+    //     intersect.object.setState( 'selected' );
 
-      } else {
+    //   } else {
 
-        // Component.setState internally call component.set with the options you defined in component.setupState
-        intersect.object.setState( 'hovered' );
+    //     // Component.setState internally call component.set with the options you defined in component.setupState
+    //     intersect.object.setState( 'hovered' );
 
-      }
+    //   }
 
-    }
+    // }
 
 
     const object = intersection.object 
