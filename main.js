@@ -92,14 +92,17 @@ const initSceneFromJSON = (txt) => {
   box = json_data.box
   //console.log(box)
 
-  const strands = json_data.systems[0].strands 
+  const strands = json_data.systems[0].strands
+  console.log(json_data) 
   let n_monomers = 0 
   strands.forEach(strand=>{
-    n_monomers += (strand.end5 - strand.end3 + 1)
+    n_monomers+= strand.monomers.length
+    //n_monomers += (strand.end5 - strand.end3 + 1)
   })
   //console.log(n_monomers)
   const sgeometry = new THREE.SphereGeometry(0.015,6,6) 
-  const material = new THREE.MeshStandardMaterial( {
+  //const sgeometry = new THREE.IcosahedronGeometry(0.015,1)
+  const material = new THREE.MeshStandardMaterial({
      roughness: 0.7,
      metalness: 0.5
    }) 
@@ -265,7 +268,8 @@ scene.background = new THREE.Color(0x00000,0)
       "meta.oxview",
       "gated-channel.oxview",
       "gripper.oxview",
-      "teather.oxview"
+      "teather.oxview",
+      //"planeV3.oxview"
     ] 
     constructor(){
       this.counter = 0
@@ -356,6 +360,7 @@ if ( xrLight.environment ) {
 
 	scene.environment = xrLight.environment;
 }
+  
 
 } );
 
