@@ -49,10 +49,10 @@ export const oxcord_to_scene = (pos, offset = [.5,1.3,0])=>{
 // currently meshes live 3->5 
 // aaaargh
 export const updateStrandsFromDat = (dat_txt, mesh)=>{
-    const dummy = new THREE.Object3D()
     let lines = dat_txt.split("\n")
     const header_offset = 3
     const line_count = lines.length
+    mesh.targetPositions = new Map()
     for(let i = header_offset; i < line_count; i++){
         let line = lines[i].split(' ').map(parseFloat)
 
@@ -65,18 +65,11 @@ export const updateStrandsFromDat = (dat_txt, mesh)=>{
             p.x - (0.34 * a1.x + 0.3408 * a2.x),
             p.y - (0.34 * a1.y + 0.3408 * a2.y),
             p.z - (0.34 * a1.z + 0.3408 * a2.z)
-        );
+        ).divideScalar(50);
 
-       
-        bbPosition.x /= 50 
-        bbPosition.y /= 50 
-        bbPosition.z /= 50 
-        dummy.position.copy(bbPosition)
-       
-        dummy.updateMatrix()
-        mesh.setMatrixAt(i-header_offset, dummy.matrix)
+        // Set a target position to lerp towards in the animation loop
+        mesh.targetPositions.set(i-header_offset, bbPosition);
     }
-    mesh.instanceMatrix.needsUpdate = true
 }
 
 // register drop behavior with a handler function consuming a file list

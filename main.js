@@ -534,6 +534,28 @@ function cleanIntersected() {
 //
 
 function animate() {
+  if (instancedMesh !== undefined && instancedMesh.targetPositions !== undefined) {
+    const dummy = new THREE.Object3D()
+    const m = new THREE.Matrix4()
+    const p = new THREE.Vector3();
+
+    for (const [i, bbPosition] of instancedMesh.targetPositions) {
+      // Get old position
+      instancedMesh.getMatrixAt(i, m)
+      p.setFromMatrixPosition(m)
+
+      // Lerp towards new position
+      p.lerp(bbPosition, 0.01)
+
+      // Update instance matrix
+      dummy.position.copy(p)
+      dummy.updateMatrix()
+      instancedMesh.setMatrixAt(i, dummy.matrix)
+    }
+    instancedMesh.instanceMatrix.needsUpdate = true
+  }
+
+
 
   renderer.setAnimationLoop( render ) 
 
@@ -547,6 +569,8 @@ function render() {
   intersectObjects( controller2) 
 
   renderer.render( scene, camera ) 
+
+  animate()
 
 }
 
