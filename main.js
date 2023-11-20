@@ -172,12 +172,13 @@ const initSceneFromJSON = (txt) => {
   
   // let's establish oxServe connection and update cycles here 
   // We block the connection for now
-  //ox_socket = establishConnection(instancedMesh, top_file, dat_file)
-  //console.log(ox_socket)
-  //window.socket = ox_socket
+  ox_socket = establishConnection(instancedMesh, top_file, dat_file)
+  console.log(ox_socket)
+  window.socket = ox_socket
 
-  //ox_socket.start_simulation()
-
+  new Promise(resolve => setTimeout(resolve, 2000)).then(()=>{
+    ox_socket.start_simulation()
+  })
 
   return [strands, n_monomers]
 }
