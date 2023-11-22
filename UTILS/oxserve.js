@@ -2,7 +2,7 @@ import { updateStrandsFromDat } from "./file.js"
 import {relax_scenario} from "./relax_scenarios.js"
 export class OXServeSocket extends WebSocket{
     abort = true;
-    constructor(url, mesh, top, dat){
+    constructor(url, mesh, top, dat, onUpdate){
         super(url);
 
         this.onopen = (resonse) => {
@@ -18,6 +18,7 @@ export class OXServeSocket extends WebSocket{
                     console.log(message["console_log"])
                 }
                 if ("dat_file" in message) {
+                    onUpdate()
                     updateStrandsFromDat(message["dat_file"], mesh)
                 }
             }
@@ -51,7 +52,7 @@ export class OXServeSocket extends WebSocket{
 
 
  
-export const establishConnection = (mesh, top_file, dat_file) => {
+export const establishConnection = (mesh, top_file, dat_file, onUpdate) => {
     const url = "wss://nanobase.org:8989"
-    return  new OXServeSocket(url, mesh, top_file, dat_file)   
+    return  new OXServeSocket(url, mesh, top_file, dat_file, onUpdate)
 }

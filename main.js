@@ -74,6 +74,10 @@ let box
 let instancedMesh
 let ox_socket
 
+let stepCounter = 0;
+let frameCounter = 0;
+let framesSinceLastStep = 0;
+
 // Default colors for the strands
 const strandColors = [
   new THREE.Color(0xfdd291), //light yellow
@@ -172,7 +176,10 @@ const initSceneFromJSON = (txt) => {
   
   // let's establish oxServe connection and update cycles here 
   // We block the connection for now
-  ox_socket = establishConnection(instancedMesh, top_file, dat_file)
+  ox_socket = establishConnection(instancedMesh, top_file, dat_file, () => {
+    framesSinceLastStep = 0
+    stepCounter++
+  })
   console.log(ox_socket)
   window.socket = ox_socket
 
@@ -539,13 +546,24 @@ function animate() {
     const m = new THREE.Matrix4()
     const p = new THREE.Vector3();
 
+    frameCounter++;
+    framesSinceLastStep++;
+
+    // Overestimate a bit
+    const framesPerStep = 1.2 * ((frameCounter - framesSinceLastStep) / stepCounter);
+
+    // Calculate how much to lerp this step to have linear interpolation
+    const lerpFrac = Math.max(0, Math.min(1,
+      (1/(framesPerStep-framesSinceLastStep))
+    ));
+
     for (const [i, bbPosition] of instancedMesh.targetPositions) {
       // Get old position
       instancedMesh.getMatrixAt(i, m)
       p.setFromMatrixPosition(m)
 
       // Lerp towards new position
-      p.lerp(bbPosition, 0.01)
+      p.lerp(bbPosition, lerpFrac)
 
       // Update instance matrix
       dummy.position.copy(p)
