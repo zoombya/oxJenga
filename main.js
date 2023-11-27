@@ -21,20 +21,60 @@ import FontImage from "./UTILS/fonts/Roboto-msdf.png"
 let selection_state = false 
 function onSelectStart( event ) {
   selection_state = true
+
   const controller = event.target 
 
   const intersections = getIntersections( controller ) 
 
   if ( intersections.length > 0 ) {
 
-    const intersection = intersections[ 0 ] 
+    const intersection = intersections[0]
 
-    const object = intersection.object 
-    object.material.emissive.b = 1 
-    controller.attach( object ) 
+    const object = intersection.object
+    controller.userData.selected = object
+    controller.userData.selectedId = intersection.instanceId
 
-    controller.userData.selected = object 
+    console.log("Selected id "+intersection.instanceId)
 
+    const m = new THREE.Matrix4()
+    const p = new THREE.Vector3();
+    const q = new THREE.Quaternion();
+    const s = new THREE.Vector3();
+    object.getMatrixAt(intersection.instanceId, m)
+    console.log(m.toArray())
+    m.decompose(p, q, s)
+    s.multiplyScalar(1.2)
+    m.compose(p, q, s)
+    console.log(m.toArray())
+    object.setMatrixAt(intersection.instanceId, m)
+    object.instanceMatrix.needsUpdate = true
+
+    //const object = intersection.object
+    //object.material.emissive.b = 1
+    //controller.attach( object )
+
+    const target = controller.position.clone();
+
+    console.log(`Pull particle ${intersection.instanceId} toward ${target.clone().multiplyScalar(50).toArray()}`)
+
+    const dir = target.clone().sub(p);
+    pullArrow = new THREE.ArrowHelper(dir.clone().normalize(), p, dir.length);
+    console.log(`Added arrow from ${p.toArray()} toward ${target.toArray()}`)
+
+    scene.add(pullArrow);
+
+    ox_socket.update_forces(
+      `
+          {
+            type = trap
+            particle = ${intersection.instanceId}
+            pos0 = ${target.clone().multiplyScalar(50).toArray().join(', ')}
+            stiff = 0.01
+            rate = 0.
+            dir = 1.,0.,0.
+          }
+      `
+    )
   }
 
 }
@@ -44,15 +84,28 @@ function onSelectEnd( event ) {
 
   if ( controller.userData.selected !== undefined ) {
 
-    const object = controller.userData.selected 
-    object.material.emissive.b = 0 
-    group.attach( object ) 
+    const object = controller.userData.selected
+    const id = controller.userData.selectedId
+
+    const m = new THREE.Matrix4()
+    const p = new THREE.Vector3();
+    const q = new THREE.Quaternion();
+    const s = new THREE.Vector3();
+    object.getMatrixAt(id, m)
+    m.decompose(p, q, s)
+    s.divideScalar(1.2)
+    m.compose(p, q, s)
+    object.setMatrixAt(id, m)
+    object.instanceMatrix.needsUpdate = true
+
+    //group.attach( object )
 
     controller.userData.selected = undefined 
     selection_state = false
 
+    scene.remove(pullArrow);
+    ox_socket.update_forces("")
   }
-
 
 }
 
@@ -61,6 +114,8 @@ let container
 let camera, scene, renderer
 let controller1, controller2
 let controllerGrip1, controllerGrip2
+
+let pullArrow
 
 let raycaster
 const intersected = []
@@ -462,7 +517,7 @@ function getIntersections( controller ) {
 
   //return raycaster.intersectObjects( group.children, false )
   
-  return raycaster.intersectObjects(group.children,false)
+  return raycaster.intersectObjects(group.children, false)
   //return raycaster.intersectObjects( scene.children, false ) 
 }
 
@@ -508,13 +563,16 @@ function intersectObjects( controller ) {
     // )
 
     // // intersections 
-    // object.setColorAt( intersection.instanceId, new THREE.Color("red"))
-    // object.instanceColor.needsUpdate = true
+    const color = new THREE.Color()
+    object.getColorAt(intersection.instanceId, color)
+    color.multiplyScalar(1/3);
+    object.setColorAt(intersection.instanceId, color)
+    object.instanceColor.needsUpdate = true
 
     //object.setColorAt(instanceId, new THREE.Color("red"))
 
-    object.material.emissive.r = 1 
-    intersected.push( object ) 
+    //object.material.emissive.r = 1
+    intersected.push( [intersection.instanceId, object] )
 
 
     line.scale.z = intersection.distance 
@@ -528,12 +586,13 @@ function intersectObjects( controller ) {
 }
 
 function cleanIntersected() {
-
+  const color = new THREE.Color()
   while ( intersected.length ) {
-
-    const object = intersected.pop() 
-    object.material.emissive.r = 0 
-
+    const [instanceId, object] = intersected.pop()
+    object.getColorAt(instanceId, color)
+    color.multiplyScalar(3);
+    object.setColorAt(instanceId, color)
+    object.instanceColor.needsUpdate = true
   }
 
 }
@@ -583,8 +642,8 @@ function render() {
 
   cleanIntersected() 
 
-  intersectObjects( controller1) 
-  intersectObjects( controller2) 
+  intersectObjects(controller1)
+  intersectObjects(controller2)
 
   renderer.render( scene, camera ) 
 

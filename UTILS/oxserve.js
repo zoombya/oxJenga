@@ -19,6 +19,7 @@ export class OXServeSocket extends WebSocket{
                 }
                 if ("dat_file" in message) {
                     onUpdate()
+                    this.dat = message["dat_file"]
                     updateStrandsFromDat(message["dat_file"], mesh)
                 }
             }
@@ -40,6 +41,18 @@ export class OXServeSocket extends WebSocket{
         this.abort = false
         let conf = {}
         conf["settings"] = relax_scenario
+        conf["top_file"] = this.top
+        conf["dat_file"] = this.dat
+        this.send(
+            JSON.stringify(conf)
+        )
+    }
+
+    update_forces = (forces) => {
+        this.send("abort");
+        let conf = {}
+        conf["settings"] = relax_scenario
+        conf["trap_file"] = forces
         conf["top_file"] = this.top
         conf["dat_file"] = this.dat
         this.send(
