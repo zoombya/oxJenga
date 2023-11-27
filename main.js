@@ -15,6 +15,8 @@ import { makeTopFile,makeDatFile,
 import { establishConnection } from './UTILS/oxserve.js'
 import { XREstimatedLight } from 'three/addons/webxr/XREstimatedLight.js'
 
+import { drawBox } from './UTILS/utils.js';
+
 import FontJSON from  "./UTILS/fonts/Roboto-msdf.json"
 import FontImage from "./UTILS/fonts/Roboto-msdf.png"
 
@@ -44,10 +46,12 @@ function onSelectStart( event ) {
     console.log(m.toArray())
     m.decompose(p, q, s)
     s.multiplyScalar(1.2)
-    m.compose(p, q, s)
+    m.compose(p.clone(), q, s)
     console.log(m.toArray())
     object.setMatrixAt(intersection.instanceId, m)
     object.instanceMatrix.needsUpdate = true
+
+    const nucPos = object.localToWorld(p)
 
     //const object = intersection.object
     //object.material.emissive.b = 1
@@ -55,32 +59,44 @@ function onSelectStart( event ) {
 
     const target = controller.position.clone();
 
-    console.log(`Pull particle ${intersection.instanceId} toward ${target.clone().multiplyScalar(50).toArray()}`)
+    console.log(`Pull particle ${intersection.instanceId} toward ${target.clone().toArray()}`)
 
-    const dir = target.clone().sub(p);
-    pullArrow = new THREE.ArrowHelper(dir.clone().normalize(), p, dir.length);
-    console.log(`Added arrow from ${p.toArray()} toward ${target.toArray()}`)
+    const dir = target.clone().sub(nucPos);
+    pullArrow = new THREE.ArrowHelper(dir.clone().normalize(), target, dir.length, 0xffff00);
+    console.log(`Added arrow from ${nucPos.toArray()} toward ${target.toArray()}`)
 
     scene.add(pullArrow);
+
+
+    const geometry = new THREE.ConeGeometry(0.05, 0.5, 16);
+    geometry.rotateX(Math.PI * 0.5);
+    const material = new THREE.MeshBasicMaterial({color: 0xffff00});
+    const cone = new THREE.Mesh(geometry, material);
+    cone.position.copy(target.clone().add(nucPos).divideScalar(2));
+    cone.position.copy(target)
+    cone.lookAt(nucPos)
+    scene.add(cone)
 
     ox_socket.update_forces(
       `
           {
             type = trap
             particle = ${intersection.instanceId}
-            pos0 = ${target.clone().multiplyScalar(50).toArray().join(', ')}
+            pos0 = ${target.clone().toArray().join(', ')}
             stiff = 0.01
             rate = 0.
             dir = 1.,0.,0.
           }
       `
     )
+
+    render()
   }
 
 }
 function onSelectEnd( event ) {
 
-  const controller = event.target 
+  const controller = event.target
 
   if ( controller.userData.selected !== undefined ) {
 
@@ -103,7 +119,7 @@ function onSelectEnd( event ) {
     controller.userData.selected = undefined 
     selection_state = false
 
-    scene.remove(pullArrow);
+    //scene.remove(pullArrow)
     ox_socket.update_forces("")
   }
 
@@ -149,7 +165,9 @@ const initSceneFromJSON = (txt) => {
   //console.log(json_data)
 
   box = json_data.box
-  //console.log(box)
+  scene.add(drawBox(new THREE.Vector3().fromArray(box).divideScalar(50)))
+  const axesHelper = new THREE.AxesHelper(0.1);
+  scene.add( axesHelper );
 
   const strands = json_data.systems[0].strands
   console.log(json_data) 
@@ -191,9 +209,9 @@ const initSceneFromJSON = (txt) => {
   }
 
   strands.forEach((strand, id)=>{
-      // we keep elements on the scene 3 -> 5
+      // Reverse strands to keep elements on the scene 3 -> 5
       // I'll regret this deeply, but dat parsing is in order 
-      strand.monomers.forEach(base=>{
+      strand.monomers.slice().reverse().forEach(base=>{
         //base.p = base.p.map(Math.round)
 
         let p = new THREE.Vector3(...base.p.map(round))
@@ -208,13 +226,8 @@ const initSceneFromJSON = (txt) => {
         );
 
         //rescale everything 
-        bbPosition.x /= 50 
-        bbPosition.y /= 50 
-        bbPosition.z /= 50 
+        bbPosition.divideScalar(50)
         dummy.position.copy(bbPosition)
-
-
-
 
         dummy.updateMatrix()
         instancedMesh.setMatrixAt(bid, dummy.matrix)
@@ -261,9 +274,8 @@ const init = () => {
 
 scene = new THREE.Scene()
 
-
   //scene.background = new THREE.Color( 0x808080 )
-scene.background = new THREE.Color(0x00000,0)
+  scene.background = new THREE.Color(0x00000,0)
 //scene.background.alpha=1;
   camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 100 )
   camera.position.set( 0, 1.6, 5 )
@@ -323,15 +335,16 @@ scene.background = new THREE.Color(0x00000,0)
 
   class DesignStorage{
     designs = [
-      "6-bar.oxview",
-      "hairygami.oxview",
-      "Leaf.oxview",
-      "monohole_1b.oxview",
+      //"6-bar.oxview",
+      //"hairygami.oxview",
+      //"hairpin.oxview",
+      //"Leaf.oxview",
+      //"monohole_1b.oxview",
       "moon.oxview",
-      "meta.oxview",
-      "gated-channel.oxview",
-      "gripper.oxview",
-      "teather.oxview",
+      //"meta.oxview",
+      //"gated-channel.oxview",
+      //"gripper.oxview",
+      //"teather.oxview",
       //"planeV3.oxview"
     ] 
     constructor(){
@@ -434,7 +447,7 @@ xrLight.addEventListener( 'estimationend', () => {
 
   // Revert back to the default environment.
   scene.environment = defaultEnvironment;
-} );
+});
 
   // controllers
 
@@ -597,9 +610,16 @@ function cleanIntersected() {
 
 }
 
-//
 
-function animate() {
+function render() {
+
+  cleanIntersected()
+
+  intersectObjects(controller1)
+  intersectObjects(controller2)
+
+  renderer.render( scene, camera )
+
   if (instancedMesh !== undefined && instancedMesh.targetPositions !== undefined) {
     const dummy = new THREE.Object3D()
     const m = new THREE.Matrix4()
@@ -632,24 +652,8 @@ function animate() {
     instancedMesh.instanceMatrix.needsUpdate = true
   }
 
-
-
   renderer.setAnimationLoop( render ) 
-
-}
-
-function render() {
-
-  cleanIntersected() 
-
-  intersectObjects(controller1)
-  intersectObjects(controller2)
-
-  renderer.render( scene, camera ) 
-
-  animate()
-
 }
 
 init()
-animate()
+render()
