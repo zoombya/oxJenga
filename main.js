@@ -1,6 +1,5 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-//import { VRButton } from 'three/addons/webxr/VRButton.js'
 import { XRButton } from 'three/addons/webxr/XRButton.js';
 import { XRControllerModelFactory } from 'three/addons/webxr/XRControllerModelFactory.js'
 import { makeTopFile,makeDatFile,
@@ -11,14 +10,10 @@ import { makeTopFile,makeDatFile,
 
 //import {onSelectStart, onSelectEnd} from './UTILS/selection_handlers';
 
-
 import { establishConnection } from './UTILS/oxserve.js'
 import { XREstimatedLight } from 'three/addons/webxr/XREstimatedLight.js'
 
-import { drawBox } from './UTILS/utils.js';
-
-import FontJSON from  "./UTILS/fonts/Roboto-msdf.json"
-import FontImage from "./UTILS/fonts/Roboto-msdf.png"
+import { drawBox, drawCone, positionCone } from './UTILS/utils.js';
 
 let selection_state = false 
 function onSelectStart( event ) {
@@ -59,39 +54,40 @@ function onSelectStart( event ) {
 
     const target = controller.position.clone();
 
-    console.log(`Pull particle ${intersection.instanceId} toward ${target.clone().toArray()}`)
+    const pullArrow = drawCone(target, nucPos);
+    scene.add(pullArrow)
 
-    const dir = target.clone().sub(nucPos);
-    pullArrow = new THREE.ArrowHelper(dir.clone().normalize(), target, dir.length, 0xffff00);
-    console.log(`Added arrow from ${nucPos.toArray()} toward ${target.toArray()}`)
+    const oxDNATarget = target.clone().multiplyScalar(50)
+    console.log(`Pull particle ${intersection.instanceId} toward ${oxDNATarget.toArray()}`)
 
-    scene.add(pullArrow);
+    forces.set(controller, {
+      coneMesh: pullArrow,
+      target: target,
+      nucId: intersection.instanceId
+    })
 
 
-    const geometry = new THREE.ConeGeometry(0.05, 0.5, 16);
-    geometry.rotateX(Math.PI * 0.5);
-    const material = new THREE.MeshBasicMaterial({color: 0xffff00});
-    const cone = new THREE.Mesh(geometry, material);
-    cone.position.copy(target.clone().add(nucPos).divideScalar(2));
-    cone.position.copy(target)
-    cone.lookAt(nucPos)
-    scene.add(cone)
-
-    ox_socket.update_forces(
-      `
-          {
-            type = trap
-            particle = ${intersection.instanceId}
-            pos0 = ${target.clone().toArray().join(', ')}
-            stiff = 0.01
-            rate = 0.
-            dir = 1.,0.,0.
-          }
-      `
-    )
-
-    render()
+  } else {
+    if (forces.has(controller)) {
+      const f = forces.get(controller)
+      scene.remove(f.coneMesh)
+    }
   }
+
+  let forceStr = [...forces.values()].map(f=>
+    `
+    {
+      type = trap
+      particle = ${f.nucId}
+      pos0 = ${f.target.clone().multiplyScalar(50).toArray().join(', ')}
+      stiff = 0.01
+      rate = 0.
+      dir = 1.,0.,0.
+    }
+    `
+  ).join("\n")
+  ox_socket.update_forces(forceStr)
+  render()
 
 }
 function onSelectEnd( event ) {
@@ -118,9 +114,6 @@ function onSelectEnd( event ) {
 
     controller.userData.selected = undefined 
     selection_state = false
-
-    //scene.remove(pullArrow)
-    ox_socket.update_forces("")
   }
 
 }
@@ -131,7 +124,7 @@ let camera, scene, renderer
 let controller1, controller2
 let controllerGrip1, controllerGrip2
 
-let pullArrow
+const forces = new Map();
 
 let raycaster
 const intersected = []
@@ -208,6 +201,9 @@ const initSceneFromJSON = (txt) => {
     return v.toFixed(3);
   }
 
+  let centreOfMass = new THREE.Vector3()
+  let nucCount = 0;
+
   strands.forEach((strand, id)=>{
       // Reverse strands to keep elements on the scene 3 -> 5
       // I'll regret this deeply, but dat parsing is in order 
@@ -227,16 +223,24 @@ const initSceneFromJSON = (txt) => {
 
         //rescale everything 
         bbPosition.divideScalar(50)
-        dummy.position.copy(bbPosition)
 
+        centreOfMass.add(bbPosition)
+        nucCount++
+
+        dummy.position.copy(bbPosition)
         dummy.updateMatrix()
         instancedMesh.setMatrixAt(bid, dummy.matrix)
         instancedMesh.setColorAt(bid, strandColors[id%strandColorsLen])
         bid++
     })
   })
+
+  // Centre at origin
+  centreOfMass.divideScalar(nucCount)
+
   group.add(instancedMesh)
 
+  group.position.sub(centreOfMass)
 
   //generate it's description in oxDNA world
   let top_file = makeTopFile(strands, n_monomers)
@@ -335,17 +339,17 @@ scene = new THREE.Scene()
 
   class DesignStorage{
     designs = [
-      //"6-bar.oxview",
-      //"hairygami.oxview",
+      "6-bar.oxview",
+      "hairygami.oxview",
       //"hairpin.oxview",
-      //"Leaf.oxview",
-      //"monohole_1b.oxview",
+      "Leaf.oxview",
+      "monohole_1b.oxview",
       "moon.oxview",
-      //"meta.oxview",
-      //"gated-channel.oxview",
-      //"gripper.oxview",
-      //"teather.oxview",
-      //"planeV3.oxview"
+      "meta.oxview",
+      "gated-channel.oxview",
+      "gripper.oxview",
+      "teather.oxview",
+      "planeV3.oxview"
     ] 
     constructor(){
       this.counter = 0
@@ -399,8 +403,8 @@ fetch(designStorage.getRand()).then((resp)=>resp.text()).then(initSceneFromJSON)
   group = new THREE.Group()
 
   // play with the group offset, rather than with the mesh offset
-  group.position.y += 1.5
-  group.position.z -= 2.5
+  //group.position.y += 1.5
+  //group.position.z -= 2.5
   group.rotation.y += Math.PI /2
   group.rotation.z -= Math.PI /6
 
@@ -412,13 +416,12 @@ fetch(designStorage.getRand()).then((resp)=>resp.text()).then(initSceneFromJSON)
   renderer = new THREE.WebGLRenderer( { antialias: true , alpha: true} ) 
   renderer.setPixelRatio( window.devicePixelRatio ) 
   renderer.setSize( window.innerWidth, window.innerHeight ) 
-  renderer.shadowMap.enabled = true 
-  renderer.xr.enabled = true 
+  renderer.shadowMap.enabled = true
+  renderer.xr.enabled = true
+  renderer.xr.setReferenceSpaceType("local")
   container.appendChild( renderer.domElement ) 
 
   document.body.appendChild( XRButton.createButton( renderer, { optionalFeatures: [ 'light-estimation' ] } ) ) 
-
-
 
 // Don't add the XREstimatedLight to the scene initially.
 // It doesn't have any estimated lighting values until an AR session starts.
@@ -620,6 +623,8 @@ function render() {
 
   renderer.render( scene, camera )
 
+  const pulledParticles = new Set([...forces.values()].map(f=>f.nucId))
+
   if (instancedMesh !== undefined && instancedMesh.targetPositions !== undefined) {
     const dummy = new THREE.Object3D()
     const m = new THREE.Matrix4()
@@ -643,6 +648,14 @@ function render() {
 
       // Lerp towards new position
       p.lerp(bbPosition, lerpFrac)
+
+      if (pulledParticles.has(i)) {
+        for (const f of forces.values()) {
+          if (f.nucId === i) {
+            positionCone(f.coneMesh, f.target, instancedMesh.localToWorld(p.clone()))
+          }
+        }
+      }
 
       // Update instance matrix
       dummy.position.copy(p)

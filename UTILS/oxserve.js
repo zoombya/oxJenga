@@ -49,6 +49,11 @@ export class OXServeSocket extends WebSocket{
     }
 
     update_forces = (forces) => {
+        if (this.forces === forces) {
+            console.log("Forces do not need to be updated")
+            return
+        }
+        this.forces = forces
         this.send("abort");
         let conf = {}
         conf["settings"] = relax_scenario

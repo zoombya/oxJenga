@@ -36,4 +36,23 @@ function drawBox(size, position) {
     return boxObj;
 }
 
-export {drawBox}
+function drawCone(from, to, radius=0.015, radialSegments=6, color=0xffff00) {
+    const geometry = new THREE.ConeGeometry(radius, 1, radialSegments)
+    geometry.rotateX(Math.PI * 0.5)
+    const material = new THREE.MeshPhongMaterial({
+      color: color,
+      opacity: 0.5,
+      transparent: true,
+    });
+    const cone = new THREE.Mesh(geometry, material)
+    positionCone(cone, from, to)
+    return cone
+}
+
+function positionCone(cone, from, to) {
+    cone.position.copy(to.clone().add(from).divideScalar(2))
+    cone.scale.z = to.distanceTo(from);
+    cone.lookAt(from)
+}
+
+export {drawBox, drawCone, positionCone}
