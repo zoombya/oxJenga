@@ -52,6 +52,11 @@ function onSelectStart( event ) {
 
     const target = controller.position.clone();
 
+    if (forces.has(controller)) {
+      // Remove old cone mesh
+      const f = forces.get(controller)
+      scene.remove(f.coneMesh)
+    }
     const pullArrow = drawCone(target, nucPos);
     scene.add(pullArrow)
 
