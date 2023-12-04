@@ -46,7 +46,7 @@ function onSelectStart( event ) {
     object.setMatrixAt(intersection.instanceId, m)
     object.instanceMatrix.needsUpdate = true
 
-    const nucPos = object.localToWorld(p)
+    const nucPos = p //object.localToWorld(p)
 
     //const object = intersection.object
     //object.material.emissive.b = 1
@@ -57,12 +57,18 @@ function onSelectStart( event ) {
     const pullArrow = drawCone(target, nucPos);
     scene.add(pullArrow)
 
-    const oxDNATarget = target.clone().multiplyScalar(50)
-    console.log(`Pull particle ${intersection.instanceId} toward ${oxDNATarget.toArray()}`)
+    const oxDNANucPos = p.clone().multiplyScalar(50);
+
+    let oxDNATarget = target.clone().sub(object.getWorldPosition(new THREE.Vector3)).multiplyScalar(50)
+    oxDNATarget.applyMatrix4(object.matrixWorld.clone().invert())
+    oxDNATarget = getClosestBoundedVec(oxDNATarget, oxDNANucPos, new THREE.Vector3().fromArray(box))
+
+    console.log(`Pull particle ${intersection.instanceId} at ${p.clone().multiplyScalar(50).toArray().map(v=>v.toFixed(3))} toward ${oxDNATarget.toArray()}`)
 
     forces.set(controller, {
       coneMesh: pullArrow,
       target: target,
+      oxDNATarget: oxDNATarget,
       nucId: intersection.instanceId
     })
 
@@ -71,6 +77,7 @@ function onSelectStart( event ) {
     if (forces.has(controller)) {
       const f = forces.get(controller)
       scene.remove(f.coneMesh)
+      forces.remove(controller)
     }
   }
 
@@ -79,13 +86,14 @@ function onSelectStart( event ) {
     {
       type = trap
       particle = ${f.nucId}
-      pos0 = ${f.target.clone().multiplyScalar(50).toArray().join(', ')}
-      stiff = 0.01
+      pos0 = ${f.oxDNATarget.toArray().map(v=>v.toFixed(3)).join(', ')}
+      stiff = 0.1
       rate = 0.
       dir = 1.,0.,0.
     }
     `
   ).join("\n")
+  console.log(forceStr)
   ox_socket.update_forces(forceStr)
   render()
 
@@ -157,8 +165,9 @@ const initSceneFromJSON = (txt) => {
   const json_data = JSON.parse(txt)
   //console.log(json_data)
 
-  box = json_data.box
-  scene.add(drawBox(new THREE.Vector3().fromArray(box).divideScalar(50)))
+  box = new THREE.Vector3().fromArray(json_data.box)
+  const origin = box.clone().divideScalar(2 * 50)
+  scene.add(drawBox(box.clone().divideScalar(50)))
   const axesHelper = new THREE.AxesHelper(0.1);
   scene.add( axesHelper );
 
@@ -180,7 +189,6 @@ const initSceneFromJSON = (txt) => {
   instancedMesh = new THREE.InstancedMesh(sgeometry,material,n_monomers)
   instancedMesh.castShadow = true
   instancedMesh.receiveShadow = true
-  const dummy = new THREE.Object3D()
   let bid = 0
 
   // make sure we have no items in the scene group
@@ -188,23 +196,23 @@ const initSceneFromJSON = (txt) => {
   // group.children.pop()
   // const group = /* your Three.js group */;
   while(group.children.length > 0) {
-      let child = group.children[0];
-      group.remove(child);
-      // Optional: Dispose geometry and material if they are no longer needed
+    let child = group.children[0];
+    group.remove(child);
+    // Optional: Dispose geometry and material if they are no longer needed
       if(child.geometry) child.geometry.dispose();
       if(child.material) child.material.dispose();
-  } 
+    }
 
+    let round = (v)=>{
+      return v.toFixed(3);
+    }
 
+    const posMap = new Map()
+    const sidMap = new Map()
 
-  let round = (v)=>{
-    return v.toFixed(3);
-  }
+    let com = new THREE.Vector3()
 
-  let centreOfMass = new THREE.Vector3()
-  let nucCount = 0;
-
-  strands.forEach((strand, id)=>{
+    strands.forEach((strand, id)=>{
       // Reverse strands to keep elements on the scene 3 -> 5
       // I'll regret this deeply, but dat parsing is in order 
       strand.monomers.slice().reverse().forEach(base=>{
@@ -215,36 +223,46 @@ const initSceneFromJSON = (txt) => {
         let a3 = new THREE.Vector3(...base.a3.map(round))
         let a2 = a1.clone().cross(a3)
 
-        let bbPosition =  new THREE.Vector3(
-            p.x - (0.34 * a1.x + 0.3408 * a2.x),
-            p.y - (0.34 * a1.y + 0.3408 * a2.y),
-            p.z - (0.34 * a1.z + 0.3408 * a2.z)
+        let bbPosition = new THREE.Vector3(
+          p.x - (0.34 * a1.x + 0.3408 * a2.x),
+          p.y - (0.34 * a1.y + 0.3408 * a2.y),
+          p.z - (0.34 * a1.z + 0.3408 * a2.z)
         );
 
-        //rescale everything 
+        //rescale everything
         bbPosition.divideScalar(50)
 
-        centreOfMass.add(bbPosition)
-        nucCount++
+        com.add(bbPosition)
 
-        dummy.position.copy(bbPosition)
-        dummy.updateMatrix()
-        instancedMesh.setMatrixAt(bid, dummy.matrix)
-        instancedMesh.setColorAt(bid, strandColors[id%strandColorsLen])
+        posMap.set(bid, bbPosition)
+        sidMap.set(bid, id)
+
         bid++
+      })
     })
-  })
 
-  // Centre at origin
-  centreOfMass.divideScalar(nucCount)
+  com.divideScalar(bid)
+  const shift = origin.clone().sub(com);
+
+  //const shift = centerPositions([...posMap.values()], box.clone().divideScalar(50), origin)
+
+  const dummy = new THREE.Object3D()
+  for (let [bid, p] of posMap.entries()) {
+    const sid = sidMap.get(bid)
+    p.add(shift)
+    dummy.position.copy(p)
+    dummy.updateMatrix()
+    instancedMesh.setMatrixAt(bid, dummy.matrix)
+    instancedMesh.setColorAt(bid, strandColors[sid%strandColorsLen])
+  }
+  instancedMesh.instanceMatrix.needsUpdate = true
 
   group.add(instancedMesh)
-
-  group.position.sub(centreOfMass)
+  group.position.sub(origin)
 
   //generate it's description in oxDNA world
   let top_file = makeTopFile(strands, n_monomers)
-  let dat_file = makeDatFile(strands, box)
+  let dat_file = makeDatFile(strands, box, shift.clone().multiplyScalar(50))
   
   // let's establish oxServe connection and update cycles here 
   // We block the connection for now
@@ -288,22 +306,8 @@ scene = new THREE.Scene()
   controls.target.set( 0, 1.6, 0 )
   controls.update()
 
-  // const floorGeometry = new THREE.PlaneGeometry( 4, 4 )
-  // const floorMaterial = new THREE.MeshStandardMaterial( {
-  //   color: 0xeeeeee,
-  //   roughness: 1.0,
-  //   metalness: 0.0
-  // })
-  // const floor = new THREE.Mesh( floorGeometry, floorMaterial )
-  // floor.rotation.x = - Math.PI / 2
-  // floor.receiveShadow = true
-  // scene.add( floor )
-  
   let hemilight =  new THREE.HemisphereLight( 0x808080, 0x606060 ) 
   hemilight.intensity=5
-  //scene.add(hemilight)
-
-  
 
   const light = new THREE.DirectionalLight( 0xffffff )
   light.position.set( 0, 6, 0 )
@@ -319,23 +323,6 @@ scene = new THREE.Scene()
   defaultLight.add(hemilight)
   defaultLight.add(light)
   scene.add(defaultLight)
-
-  //Load up our model here and establish oxServe
-  // fetch("./moon.oxview").then((resp)=>resp.text()).then((txt) =>{
-  //   [strands, n_elements] = initSceneFromJSON(txt)
-  // })
-  // let designs = [
-  //   "6-bar.oxview",
-  //   "hairygami.oxview",
-  //   "Leaf.oxview",
-  //   "monohole_1b.oxview",
-  //   "moon.oxview",
-  //   "meta.oxview",
-  //   "gated-channel.oxview",
-  //   "gripper.oxview",
-  //   "teather.oxview"
-  // ]
-  //get random design
 
   class DesignStorage{
     designs = [
@@ -377,23 +364,6 @@ scene = new THREE.Scene()
 let designStorage = new DesignStorage()
 //load up first design
 fetch(designStorage.getRand()).then((resp)=>resp.text()).then(initSceneFromJSON)
-  
-  // fetch("./monohole_1b.oxview").then((resp)=>resp.text()).then((txt) =>{
-  //   [strands, n_elements] = initSceneFromJSON(txt)
-
-  //   fetch("./moon.oxview").then((resp)=>resp.text()).then((txt)=>{
-  //     initSceneFromJSON(txt)
-
-  //     fetch("./hairygami.oxview").then((resp)=>resp.text()).then((txt)=>{
-  //       initSceneFromJSON(txt)
-  //     })
-  //   })
-
-  // })
-
-
-
-
 
   // read from nanobase might be subject to XSSS scripting issues ...
   // need to look more into it, but even oxview.org can't fetch in local dev cycle 
@@ -405,13 +375,10 @@ fetch(designStorage.getRand()).then((resp)=>resp.text()).then(initSceneFromJSON)
   // play with the group offset, rather than with the mesh offset
   //group.position.y += 1.5
   //group.position.z -= 2.5
-  group.rotation.y += Math.PI /2
-  group.rotation.z -= Math.PI /6
+  //group.rotation.y += Math.PI /2
+  //group.rotation.z -= Math.PI /6
 
   scene.add( group )
-
-
-
 
   renderer = new THREE.WebGLRenderer( { antialias: true , alpha: true} ) 
   renderer.setPixelRatio( window.devicePixelRatio ) 
@@ -652,6 +619,7 @@ function render() {
       if (pulledParticles.has(i)) {
         for (const f of forces.values()) {
           if (f.nucId === i) {
+            //console.log(`Nuc ${i} at ${p.clone().multiplyScalar(50).toArray().map(v=>v.toFixed(3))} pulled towards ${f.oxDNATarget.toArray().map(v=>v.toFixed(3))}`)
             positionCone(f.coneMesh, f.target, instancedMesh.localToWorld(p.clone()))
           }
         }

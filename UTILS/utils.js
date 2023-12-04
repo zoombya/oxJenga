@@ -1,10 +1,6 @@
 import * as THREE from 'three'
 
-function drawBox(size, position) {
-    if (!position) {
-        position = new THREE.Vector3();
-    }
-
+function drawBox(size, position = new THREE.Vector3()) {
     let material = new THREE.LineBasicMaterial({color: new THREE.Color(0x777777)});
     let points = [];
 

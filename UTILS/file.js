@@ -19,18 +19,18 @@ export const makeTopFile = (strands,n_monomers)=>{
 }
 
 // fast transform of oxview json -> dat
-export const makeDatFile = (strands,box)=>{
+export const makeDatFile = (strands,box,shift)=>{
     // header 
     let lines = [
         `t = 0`,
-        `b = ${box[0]} ${box[1]} ${box[2]}`,
+        `b = ${box.x} ${box.y} ${box.z}`,
         `E = 0 0 0`
     ]
     // make sure to catch 3->5 whilst we go through the strands 
     strands.forEach((strand) =>{
         strand.monomers.slice().reverse().forEach(base =>{
             lines.push(
-                `${base.p[0]} ${base.p[1]} ${base.p[2]} ${base.a1[0]} ${base.a1[1]} ${base.a1[2]} ${base.a3[0]} ${base.a3[1]} ${base.a3[2]} 0 0 0 0 0 0`
+                `${base.p[0]+shift.x} ${base.p[1]+shift.y} ${base.p[2]+shift.z} ${base.a1[0]} ${base.a1[1]} ${base.a1[2]} ${base.a3[0]} ${base.a3[1]} ${base.a3[2]} 0 0 0 0 0 0`
             )
         })
     }) 
@@ -50,11 +50,20 @@ export const oxcord_to_scene = (pos, offset = [.5,1.3,0])=>{
 // aaaargh
 export const updateStrandsFromDat = (dat_txt, mesh)=>{
     let lines = dat_txt.split("\n")
+
+    let box = new THREE.Vector3().fromArray(lines[1].split('=')[1].trim().split(" ").map(s=>parseFloat(s)))
     const header_offset = 3
     const line_count = lines.length
     mesh.targetPositions = new Map()
-    for(let i = header_offset; i < line_count; i++){
+    for(let i = header_offset; i < line_count; i++) {
+        if (lines[i] === "") {
+            continue
+        }
         let line = lines[i].split(' ').map(parseFloat)
+
+        if (i === header_offset) {
+            console.log(line)
+        }
 
         let p = new THREE.Vector3(line[0],line[1],line[2])
         let a1 = new THREE.Vector3(line[3],line[4],line[5])
@@ -70,6 +79,8 @@ export const updateStrandsFromDat = (dat_txt, mesh)=>{
         // Set a target position to lerp towards in the animation loop
         mesh.targetPositions.set(i-header_offset, bbPosition);
     }
+
+    //centerAndPBC([...mesh.targetPositions.values()], box)
 }
 
 // register drop behavior with a handler function consuming a file list
