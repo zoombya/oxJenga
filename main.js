@@ -38,11 +38,9 @@ function onSelectStart( event ) {
     const q = new THREE.Quaternion();
     const s = new THREE.Vector3();
     object.getMatrixAt(intersection.instanceId, m)
-    console.log(m.toArray())
     m.decompose(p, q, s)
     s.multiplyScalar(1.2)
     m.compose(p.clone(), q, s)
-    console.log(m.toArray())
     object.setMatrixAt(intersection.instanceId, m)
     object.instanceMatrix.needsUpdate = true
 
@@ -57,11 +55,8 @@ function onSelectStart( event ) {
     const pullArrow = drawCone(target, nucPos);
     scene.add(pullArrow)
 
-    const oxDNANucPos = p.clone().multiplyScalar(50);
-
     let oxDNATarget = target.clone().sub(object.getWorldPosition(new THREE.Vector3)).multiplyScalar(50)
     oxDNATarget.applyMatrix4(object.matrixWorld.clone().invert())
-    oxDNATarget = getClosestBoundedVec(oxDNATarget, oxDNANucPos, new THREE.Vector3().fromArray(box))
 
     console.log(`Pull particle ${intersection.instanceId} at ${p.clone().multiplyScalar(50).toArray().map(v=>v.toFixed(3))} toward ${oxDNATarget.toArray()}`)
 
