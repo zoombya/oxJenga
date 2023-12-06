@@ -326,17 +326,17 @@ scene = new THREE.Scene()
 
   class DesignStorage{
     designs = [
-      "6-bar.oxview",
-      "hairygami.oxview",
+      //"6-bar.oxview",
+      //"hairygami.oxview",
       //"hairpin.oxview",
-      "Leaf.oxview",
+      //"Leaf.oxview",
       "monohole_1b.oxview",
-      "moon.oxview",
-      "meta.oxview",
-      "gated-channel.oxview",
-      "gripper.oxview",
-      "teather.oxview",
-      "planeV3.oxview"
+      //"moon.oxview",
+      //"meta.oxview",
+      //"gated-channel.oxview",
+      //"gripper.oxview",
+      //"teather.oxview",
+      //"planeV3.oxview"
     ] 
     constructor(){
       this.counter = 0
@@ -447,7 +447,7 @@ xrLight.addEventListener( 'estimationend', () => {
   controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) ) 
   scene.add( controllerGrip2 ) 
 
-  
+  /*
   //handle new design loading 
   controller1.addEventListener('squeezeend',()=>{
     if(!selection_state)
@@ -457,6 +457,7 @@ xrLight.addEventListener( 'estimationend', () => {
     if(!selection_state)
       fetch(designStorage.getNext()).then((resp)=>resp.text()).then(initSceneFromJSON)
   })
+  */
    
   //
 
