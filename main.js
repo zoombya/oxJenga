@@ -9,12 +9,12 @@ import {
     makeFileDropable,
     makeTopFile,
     updateStrandsFromDat
-} from "./UTILS/file.js";
+} from "./src/file.js";
 
 import { XREstimatedLight } from "three/addons/webxr/XREstimatedLight.js";
-import { establishConnection } from "./UTILS/oxserve.js";
+import { establishConnection } from "./src/oxserve.js";
 
-import { drawBox, drawCone, positionCone } from "./UTILS/utils.js";
+import { drawBox, drawCone, positionCone } from "./src/utils.js";
 
 function onSelectStart(event) {
 
@@ -75,15 +75,15 @@ function onSelectStart(event) {
 
     let forceStr = [...forces.values()].map(f =>
         `
-    {
-      type = trap
-      particle = ${f.nucId}
-      pos0 = ${f.oxDNATarget.toArray().map(v => v.toFixed(3)).join(", ")}
-      stiff = 0.1
-      rate = 0.
-      dir = 1.,0.,0.
-    }
-    `
+        {
+        type = trap
+        particle = ${f.nucId}
+        pos0 = ${f.oxDNATarget.toArray().map(v => v.toFixed(3)).join(", ")}
+        stiff = 0.1
+        rate = 0.
+        dir = 1.,0.,0.
+        }
+         `
     ).join("\n");
     console.log(forceStr);
 
