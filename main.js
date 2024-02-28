@@ -15,6 +15,7 @@ import { XREstimatedLight } from "three/addons/webxr/XREstimatedLight.js";
 import { establishConnection } from "./src/oxserve.js";
 
 import { drawBox, drawCone, positionCone } from "./src/utils.js";
+import { DNAMonomer, Strand, System } from "./src/system.js";
 
 function onSelectStart(event) {
 
@@ -161,12 +162,15 @@ const initSceneFromJSON = (txt) => {
     const axesHelper = new THREE.AxesHelper(0.1);
     scene.add(axesHelper);
 
-    const strands = json_data.systems[0].strands;
     console.log(json_data);
+
+    const strands = json_data.systems[0].strands;
+    // Count monomers
     let n_monomers = 0;
     strands.forEach(strand => {
         n_monomers += strand.monomers.length;
     });
+
     const sgeometry = new THREE.SphereGeometry(0.015, 6, 6);
     const material = new THREE.MeshStandardMaterial({
         roughness: 0.7,
@@ -176,7 +180,6 @@ const initSceneFromJSON = (txt) => {
     instancedMesh = new THREE.InstancedMesh(sgeometry, material, n_monomers);
     instancedMesh.castShadow = true;
     instancedMesh.receiveShadow = true;
-    let bid = 0;
 
     // make sure we have no items in the scene group
     while (group.children.length > 0) {
@@ -187,55 +190,37 @@ const initSceneFromJSON = (txt) => {
         if (child.material) child.material.dispose();
     }
 
-    let round = (v) => {
-        return v.toFixed(3);
-    };
-
-    const posMap = new Map();
-    const sidMap = new Map();
-
-    let com = new THREE.Vector3();
-
-    strands.forEach((strand, id) => {
+    const system = new System(1/50);
+    strands.forEach((s, id) => {
+        const strand = new Strand(system, id);
+        system.strands.push(strand);
         // Reverse strands to keep elements on the scene 3 -> 5
         // I'll regret this deeply, but dat parsing is in order
-        strand.monomers.slice().reverse().forEach(base => {
-            //base.p = base.p.map(Math.round)
-
-            let p = new THREE.Vector3(...base.p.map(round));
-            let a1 = new THREE.Vector3(...base.a1.map(round));
-            let a3 = new THREE.Vector3(...base.a3.map(round));
-            let a2 = a1.clone().cross(a3);
-
-            let bbPosition = new THREE.Vector3(
-                p.x - (0.34 * a1.x + 0.3408 * a2.x),
-                p.y - (0.34 * a1.y + 0.3408 * a2.y),
-                p.z - (0.34 * a1.z + 0.3408 * a2.z)
+        s.monomers.slice().reverse().forEach(base => {
+            const monomer = new DNAMonomer(
+                strand,
+                new THREE.Vector3(...base.p),
+                new THREE.Vector3(...base.a1),
+                new THREE.Vector3(...base.a3)
             );
-
-            //rescale everything
-            bbPosition.divideScalar(50);
-
-            com.add(bbPosition);
-
-            posMap.set(bid, bbPosition);
-            sidMap.set(bid, id);
-
-            bid++;
+            strand.monomers.push(monomer);
         });
     });
 
-    com.divideScalar(bid);
+    const com = system.getCenterOfMass();
     const shift = origin.clone().sub(com);
 
+    // TODO: use dummy Matrix4 and makeTranslation() instead?
     const dummy = new THREE.Object3D();
-    for (let [bid, p] of posMap.entries()) {
-        const sid = sidMap.get(bid);
-        p.add(shift);
-        dummy.position.copy(p);
-        dummy.updateMatrix();
-        instancedMesh.setMatrixAt(bid, dummy.matrix);
-        instancedMesh.setColorAt(bid, strandColors[sid % strandColorsLen]);
+    for (const strand of system.strands) {
+        for (const m of strand.monomers) {
+            const p = m.getBackbonePos();
+            p.add(shift); // Center system
+            dummy.position.copy(p);
+            dummy.updateMatrix();
+            instancedMesh.setMatrixAt(m.id, dummy.matrix);
+            instancedMesh.setColorAt(m.id, strandColors[strand.id % strandColorsLen]);
+        }
     }
     instancedMesh.instanceMatrix.needsUpdate = true;
 
