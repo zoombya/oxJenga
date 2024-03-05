@@ -1,14 +1,31 @@
 import { updateStrandsFromDat } from "./file.js";
-import {relax_scenario} from "./relax_scenarios.js";
+import {dna_relax_scenario, rna_relax_scenario} from "./relax_scenarios.js";
 export class OXServeSocket extends WebSocket{
-    constructor(url, mesh, top, dat, onUpdate) {
+    constructor(url, mesh, top, dat, onUpdate, type="DNA") {
         super(url);
+
+        switch (type) {
+        case "DNA":
+            this.relax_scenario = dna_relax_scenario;
+            break;
+        case "RNA":
+            this.relax_scenario = rna_relax_scenario;
+            break;
+        default:
+            console.warn(`Relax scenario for ${type} not implemented yet`);
+            return;
+        }
+
         this.abort = true;
 
         this.onopen = (resonse) => {
             console.log("connected to nanobase", resonse);
             this.abort = false;
             //this.start_simulation()
+        };
+
+        this.onerror = (resonse) => {
+            console.log("WebSocket error: ", resonse);
         };
 
         this.onmessage = (response) => {
@@ -30,6 +47,7 @@ export class OXServeSocket extends WebSocket{
         };
         this.top = top;
         this.dat = dat;
+
     }
 
     stop_simulation() {
@@ -40,7 +58,7 @@ export class OXServeSocket extends WebSocket{
     start_simulation() {
         this.abort = false;
         let conf = {};
-        conf["settings"] = relax_scenario;
+        conf["settings"] = this.relax_scenario;
         conf["top_file"] = this.top;
         conf["dat_file"] = this.dat;
         this.send(
@@ -56,7 +74,7 @@ export class OXServeSocket extends WebSocket{
         this.forces = forces;
         this.send("abort");
         let conf = {};
-        conf["settings"] = relax_scenario;
+        conf["settings"] = this.relax_scenario;
         conf["trap_file"] = forces;
         conf["top_file"] = this.top;
         conf["dat_file"] = this.dat;
@@ -66,7 +84,7 @@ export class OXServeSocket extends WebSocket{
     }
 }
  
-export const establishConnection = (mesh, top_file, dat_file, onUpdate) => {
+export const establishConnection = (mesh, top_file, dat_file, onUpdate, type) => {
     const url = "wss://nanobase.org:8989";
-    return  new OXServeSocket(url, mesh, top_file, dat_file, onUpdate);
+    return  new OXServeSocket(url, mesh, top_file, dat_file, onUpdate, type);
 };

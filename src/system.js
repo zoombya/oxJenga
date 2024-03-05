@@ -55,6 +55,37 @@ class DNAMonomer extends Monomer {
             this.strand.system.sizeScaling
         );
     }
+
+    getType() {
+        return "DNA";
+    }
 }
 
-export {System, Strand, DNAMonomer};
+class RNAMonomer extends Monomer {
+    getBackbonePos() {
+        return new THREE.Vector3(
+            this.position.x - (0.4 * this.a1.x + 0.2 * this.a2.x),
+            this.position.y - (0.4 * this.a1.y + 0.2 * this.a2.y),
+            this.position.z - (0.4 * this.a1.z + 0.2 * this.a2.z)
+        ).multiplyScalar(
+            this.strand.system.sizeScaling
+        );
+    }
+    getType() {
+        return "RNA";
+    }
+}
+
+class AminoAcidMonomer extends Monomer {
+    getBackbonePos() {
+        return this.position.clone().multiplyScalar(
+            this.strand.system.sizeScaling
+        );
+    }
+
+    getType() {
+        return "AA";
+    }
+}
+
+export {System, Strand, DNAMonomer, RNAMonomer, AminoAcidMonomer};

@@ -1,9 +1,7 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { XRButton } from "three/addons/webxr/XRButton.js";
-import {
-    XRControllerModelFactory
-} from "three/addons/webxr/XRControllerModelFactory.js";
+import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
 import {
     makeDatFile,
     makeFileDropable,
@@ -15,7 +13,11 @@ import { XREstimatedLight } from "three/addons/webxr/XREstimatedLight.js";
 import { establishConnection } from "./src/oxserve.js";
 
 import { drawBox, drawCone, positionCone } from "./src/utils.js";
-import { DNAMonomer, Strand, System } from "./src/system.js";
+
+import {
+    DNAMonomer, RNAMonomer, AminoAcidMonomer,
+    Strand, System
+} from "./src/system.js";
 
 function onSelectStart(event) {
 
@@ -191,17 +193,25 @@ const initSceneFromJSON = (txt) => {
     }
 
     const system = new System(1/50);
-    strands.forEach((s, id) => {
+    strands.forEach((strandData, id) => {
         const strand = new Strand(system, id);
         system.strands.push(strand);
         // Reverse strands to keep elements on the scene 3 -> 5
         // I'll regret this deeply, but dat parsing is in order
-        s.monomers.slice().reverse().forEach(base => {
-            const monomer = new DNAMonomer(
+        strandData.monomers.slice().reverse().forEach(monomerData => {
+            let monomerClass;
+            switch (monomerData.class) {
+            case "DNA": monomerClass = DNAMonomer; break;
+            case "RNA": monomerClass = RNAMonomer; break;
+            case "AA": monomerClass  = AminoAcidMonomer; break;
+            default:
+                throw new Error(`Unrecognised type of element:  ${monomerData.class}`);
+            }
+            const monomer = new monomerClass(
                 strand,
-                new THREE.Vector3(...base.p),
-                new THREE.Vector3(...base.a1),
-                new THREE.Vector3(...base.a3)
+                new THREE.Vector3(...monomerData.p),
+                new THREE.Vector3(...monomerData.a1),
+                new THREE.Vector3(...monomerData.a3)
             );
             strand.monomers.push(monomer);
         });
@@ -232,10 +242,14 @@ const initSceneFromJSON = (txt) => {
     let dat_file = makeDatFile(strands, box, shift.clone().multiplyScalar(50));
 
     // Establish oxServe connection and update cycles here
-    ox_socket = establishConnection(instancedMesh, top_file, dat_file, () => {
-        framesSinceLastStep = 0;
-        stepCounter++;
-    });
+    ox_socket = establishConnection(
+        instancedMesh, top_file, dat_file, () => {
+            framesSinceLastStep = 0;
+            stepCounter++;
+        },
+        // TODO: Check more than just one monomer
+        system.strands[0].monomers[0].getType()
+    );
     console.log(ox_socket);
     window.socket = ox_socket;
 
@@ -305,7 +319,9 @@ const init = () => {
                 //"gated-channel.oxview",
                 //"gripper.oxview",
                 //"teather.oxview",
-                //"planeV3.oxview"
+                //"planeV3.oxview",
+                //"1eua.oxview",
+                //"rna_crossover.oxview"
             ].map(p => "resources/" + p);
         }
         getNext() {

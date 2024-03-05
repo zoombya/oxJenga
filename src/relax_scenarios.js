@@ -1,4 +1,4 @@
-export var relax_scenario = {
+export var dna_relax_scenario = {
     "T": "40C",
     //"seed":1,
     "steps": 1e6,
@@ -36,4 +36,44 @@ export var relax_scenario = {
     "max_io": 100000,
     "bussi_tau": 1,
     "seq_dep_file": "oxDNA2_sequence_dependent_parameters.txt"
-}
+};
+
+export var rna_relax_scenario = {
+    "T": "40C",
+    //"seed":1,
+    "steps": 1e6,
+    "salt_concentration": 1,
+    "interaction_type": "RNA2",
+    "print_conf_interval": 5e3,
+    "print_energy_every": 5e3,
+    "thermostat": "john",
+    "dt": 0.005,
+    "diff_coeff": 3,
+    "max_density_multiplier": 10,
+    "sim_type": "MD",
+    "T_units": "C",
+    "backend": "CUDA",
+    "backend_precision": "mixed",
+    "time_scale": "linear",
+    "verlet_skin": "0.5",
+    "use_average_seq": "0",
+    "refresh_vel": "1",
+    "CUDA_list": "verlet",
+    "restart_step_counter": 1,
+    "newtonian_steps": 103,
+    "CUDA_sort_every": 0,
+    "use_edge": 1,
+    "edge_n_forces": 1,
+    "cells_auto_optimisation": "true",
+    "reset_com_momentum": "true",
+    "max_backbone_force": 5,
+    "max_backbone_force_far": 10,
+    "conf_file": "conf_file.dat",
+    "topology": "top_file.top",
+    "trajectory_file": "/dev/null",
+    "energy_file": "energy.dat",
+    "lastconf_file": "last_conf.dat",
+    "max_io": 100000,
+    "bussi_tau": 1,
+    "seq_dep_file": "rna_sequence_dependent_parameters.txt"
+};
