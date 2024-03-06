@@ -60,7 +60,9 @@ function updateStrandsFromDat(dat_txt, system) {
         //let a2 = a1.clone().cross(a3);
 
         // Set a target position to lerp towards in the animation loop
-        system.elements.get(i - header_offset).targetPosition = p;
+        const monomer = system.elements.get(i - header_offset);
+        monomer.position = monomer.targetPosition;
+        monomer.targetPosition = p;
     }
 }
 

@@ -498,6 +498,7 @@ function render() {
         const dummy = new THREE.Object3D();
         const current = new THREE.Vector3();
         const target = new THREE.Vector3();
+        const m = new THREE.Matrix4();
 
         frameCounter++;
         framesSinceLastStep++;
@@ -512,7 +513,9 @@ function render() {
             (1 / (framesPerStep - framesSinceLastStep))
         ));
 
-        lerpFrac = 1;
+        if (isNaN(lerpFrac)) {
+            lerpFrac = 1;
+        }
 
         for (let i=0; i<system.idCounter; i++) {
             if (!system.elements.has(i)) {
@@ -523,8 +526,12 @@ function render() {
                 continue;
             }
             const e = system.elements.get(i);
-            // Get old and new positions
-            e.getBackbonePos(current);
+
+            // Get current position
+            system.instancedMesh.getMatrixAt(i, m);
+            current.setFromMatrixPosition(m);
+
+            // Get target
             e.getTargetBackbonePos(target);
 
             // Lerp towards new position
