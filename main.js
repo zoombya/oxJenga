@@ -317,7 +317,7 @@ const init = () => {
                 //"teather.oxview",
                 //"planeV3.oxview",
                 //"1eua.oxview",
-                //"rna_crossover.oxview"
+                "rna_crossover.oxview"
             ].map(p => "resources/" + p);
         }
         getNext() {
