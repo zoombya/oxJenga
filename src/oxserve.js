@@ -1,7 +1,7 @@
 import { updateStrandsFromDat } from "./file.js";
 import {dna_relax_scenario, rna_relax_scenario} from "./relax_scenarios.js";
 export class OXServeSocket extends WebSocket{
-    constructor(url, mesh, top, dat, onUpdate, type="DNA") {
+    constructor(url, system, top, dat, onUpdate, type="DNA") {
         super(url);
 
         switch (type) {
@@ -37,7 +37,7 @@ export class OXServeSocket extends WebSocket{
                 if ("dat_file" in message) {
                     onUpdate();
                     this.dat = message["dat_file"];
-                    updateStrandsFromDat(message["dat_file"], mesh);
+                    updateStrandsFromDat(message["dat_file"], system);
                 }
             }
         };
@@ -84,7 +84,7 @@ export class OXServeSocket extends WebSocket{
     }
 }
  
-export const establishConnection = (mesh, top_file, dat_file, onUpdate, type) => {
+export const establishConnection = (system, top_file, dat_file, onUpdate, type) => {
     const url = "wss://nanobase.org:8989";
-    return  new OXServeSocket(url, mesh, top_file, dat_file, onUpdate, type);
+    return  new OXServeSocket(url, system, top_file, dat_file, onUpdate, type);
 };

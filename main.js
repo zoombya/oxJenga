@@ -34,10 +34,8 @@ function onSelectStart(event) {
 
         console.log("Selected id " + intersection.instanceId);
 
-        // Calculate position of the selected nucleotide
-        const m = new THREE.Matrix4();
-        object.getMatrixAt(intersection.instanceId, m);
-        const nucPos = new THREE.Vector3().setFromMatrixPosition(m);
+        // Get position of the selected nucleotide
+        const nucPos = system.elements.get(intersection.instanceId).position;
 
         // Get controller position
         const target = controller.position.clone();
@@ -53,12 +51,9 @@ function onSelectStart(event) {
         scene.add(pullArrow);
 
         // Convert to oxDNA coordinates
-        let oxDNATarget = target.clone().sub(
-            object.getWorldPosition(new THREE.Vector3)
-        ).multiplyScalar(50);
-        oxDNATarget.applyMatrix4(object.matrixWorld.clone().invert());
+        let oxDNATarget = system.instancedMesh.worldToLocal(target.clone());
 
-        console.log(`Pull particle ${intersection.instanceId} at ${nucPos.clone().multiplyScalar(50).toArray().map(v => v.toFixed(3))
+        console.log(`Pull particle ${intersection.instanceId} at ${nucPos.toArray().map(v => v.toFixed(3))
         } toward ${oxDNATarget.toArray()}`);
 
         forces.set(controller, {
@@ -137,30 +132,22 @@ let controls, group;
 
 // my oxDNA related mess
 let box;
-let instancedMesh;
+let system;
 let ox_socket;
 
 let stepCounter = 0;
 let frameCounter = 0;
 let framesSinceLastStep = 0;
 
-// Default colors for the strands
-const strandColors = [
-    new THREE.Color(0xfdd291), //light yellow
-    new THREE.Color(0xffb322), //goldenrod
-    new THREE.Color(0x437092), //dark blue
-    new THREE.Color(0x6ea4cc), //light blue
-];
-
-const strandColorsLen = strandColors.length;
+const sizeScaling = 1/50;
 
 const initSceneFromJSON = (txt) => {
     // we recieve an oxView file, so it's json
     const json_data = JSON.parse(txt);
 
     box = new THREE.Vector3().fromArray(json_data.box);
-    const origin = box.clone().divideScalar(2 * 50);
-    scene.add(drawBox(box.clone().divideScalar(50)));
+
+    scene.add(drawBox(box.clone().multiplyScalar(sizeScaling)));
     const axesHelper = new THREE.AxesHelper(0.1);
     scene.add(axesHelper);
 
@@ -173,16 +160,6 @@ const initSceneFromJSON = (txt) => {
         n_monomers += strand.monomers.length;
     });
 
-    const sgeometry = new THREE.SphereGeometry(0.015, 6, 6);
-    const material = new THREE.MeshStandardMaterial({
-        roughness: 0.7,
-        metalness: 0.5
-    });
-
-    instancedMesh = new THREE.InstancedMesh(sgeometry, material, n_monomers);
-    instancedMesh.castShadow = true;
-    instancedMesh.receiveShadow = true;
-
     // make sure we have no items in the scene group
     while (group.children.length > 0) {
         let child = group.children[0];
@@ -192,13 +169,13 @@ const initSceneFromJSON = (txt) => {
         if (child.material) child.material.dispose();
     }
 
-    const system = new System(1/50);
-    strands.forEach((strandData, id) => {
-        const strand = new Strand(system, id);
+    system = new System(sizeScaling, box);
+    strands.forEach(strandData => {
+        const strand = new Strand(system, strandData.id);
         system.strands.push(strand);
         // Reverse strands to keep elements on the scene 3 -> 5
         // I'll regret this deeply, but dat parsing is in order
-        strandData.monomers.slice().reverse().forEach(monomerData => {
+        strandData.monomers.forEach(monomerData => {
             let monomerClass;
             switch (monomerData.class) {
             case "DNA": monomerClass = DNAMonomer; break;
@@ -207,7 +184,13 @@ const initSceneFromJSON = (txt) => {
             default:
                 throw new Error(`Unrecognised type of element:  ${monomerData.class}`);
             }
+
+            if (system.elements.has(monomerData.id)) {
+                throw "Differing id handling not inplemented yet";
+            }
             const monomer = new monomerClass(
+                monomerData.id,
+                monomerData.type,
                 strand,
                 new THREE.Vector3(...monomerData.p),
                 new THREE.Vector3(...monomerData.a1),
@@ -216,39 +199,38 @@ const initSceneFromJSON = (txt) => {
             strand.monomers.push(monomer);
         });
     });
+    strands.forEach(strandData => {
+        strandData.monomers.forEach(monomerData => {
+            const monomer = system.elements.get(monomerData.id);
+            monomer.n5 = system.elements.get(monomerData.n5);
+            monomer.n3 = system.elements.get(monomerData.n3);
+            monomer.pair = system.elements.get(monomerData.bp);
+        });
+    });
+    system.placeInBox();
 
-    const com = system.getCenterOfMass();
-    const shift = origin.clone().sub(com);
+    system.createViewMesh();
+    //const com = system.getCenterOfMass();
+    //system.instancedMesh.position.add(com);
 
-    // TODO: use dummy Matrix4 and makeTranslation() instead?
-    const dummy = new THREE.Object3D();
-    for (const strand of system.strands) {
-        for (const m of strand.monomers) {
-            const p = m.getBackbonePos();
-            p.add(shift); // Center system
-            dummy.position.copy(p);
-            dummy.updateMatrix();
-            instancedMesh.setMatrixAt(m.id, dummy.matrix);
-            instancedMesh.setColorAt(m.id, strandColors[strand.id % strandColorsLen]);
-        }
-    }
-    instancedMesh.instanceMatrix.needsUpdate = true;
-
-    group.add(instancedMesh);
+    group.add(system.instancedMesh);
+    const origin = system.box.clone().multiplyScalar(0.5 * system.sizeScaling);
     group.position.sub(origin);
+    axesHelper.position.sub(origin);
+
 
     //generate its description in oxDNA world
-    let top_file = makeTopFile(strands, n_monomers);
-    let dat_file = makeDatFile(strands, box, shift.clone().multiplyScalar(50));
+    let top_file = makeTopFile(system);
+    let dat_file = makeDatFile(system);
 
     // Establish oxServe connection and update cycles here
     ox_socket = establishConnection(
-        instancedMesh, top_file, dat_file, () => {
+        system, top_file, dat_file, () => {
             framesSinceLastStep = 0;
             stepCounter++;
         },
         // TODO: Check more than just one monomer
-        system.strands[0].monomers[0].getType()
+        system.strands[0].monomers[0].getCategory()
     );
     console.log(ox_socket);
     window.socket = ox_socket;
@@ -269,7 +251,7 @@ const init = () => {
         // assuming we got one file
         // -> simple parser test
         files[0].text().then(text => {
-            updateStrandsFromDat(text, instancedMesh);
+            updateStrandsFromDat(text, system);
         });
     });
 
@@ -283,7 +265,6 @@ const init = () => {
     camera.position.set(0, 1.6, 5);
 
     controls = new OrbitControls(camera, container);
-    controls.target.set(0, 1.6, 0);
     controls.update();
 
     let hemilight = new THREE.HemisphereLight(0x808080, 0x606060);
@@ -510,12 +491,13 @@ function render() {
 
     const pulledParticles = new Set([...forces.values()].map(f => f.nucId));
 
-    if (instancedMesh !== undefined &&
-        instancedMesh.targetPositions !== undefined
+    if (system !== undefined &&
+        system.instancedMesh !== undefined &&
+        system.elements.get(0).targetPosition !== undefined
     ) {
         const dummy = new THREE.Object3D();
-        const m = new THREE.Matrix4();
-        const p = new THREE.Vector3();
+        const current = new THREE.Vector3();
+        const target = new THREE.Vector3();
 
         frameCounter++;
         framesSinceLastStep++;
@@ -526,17 +508,27 @@ function render() {
         );
 
         // Calculate how much to lerp this step to have linear interpolation
-        const lerpFrac = Math.max(0, Math.min(1,
+        let lerpFrac = Math.max(0, Math.min(1,
             (1 / (framesPerStep - framesSinceLastStep))
         ));
 
-        for (const [i, bbPosition] of instancedMesh.targetPositions) {
-            // Get old position
-            instancedMesh.getMatrixAt(i, m);
-            p.setFromMatrixPosition(m);
+        lerpFrac = 1;
+
+        for (let i=0; i<system.idCounter; i++) {
+            if (!system.elements.has(i)) {
+                // Hide instance if element doesn't exist
+                system.instancedMesh.setMatrixAt(
+                    i, new THREE.Matrix4()
+                );
+                continue;
+            }
+            const e = system.elements.get(i);
+            // Get old and new positions
+            e.getBackbonePos(current);
+            e.getTargetBackbonePos(target);
 
             // Lerp towards new position
-            p.lerp(bbPosition, lerpFrac);
+            current.lerp(target, lerpFrac);
 
             if (pulledParticles.has(i)) {
                 for (const f of forces.values()) {
@@ -544,18 +536,18 @@ function render() {
                         positionCone(
                             f.coneMesh,
                             f.target,
-                            instancedMesh.localToWorld(p.clone())
+                            system.instancedMesh.localToWorld(current.clone())
                         );
                     }
                 }
             }
 
             // Update instance matrix
-            dummy.position.copy(p);
+            dummy.position.copy(current);
             dummy.updateMatrix();
-            instancedMesh.setMatrixAt(i, dummy.matrix);
+            system.instancedMesh.setMatrixAt(i, dummy.matrix);
         }
-        instancedMesh.instanceMatrix.needsUpdate = true;
+        system.instancedMesh.instanceMatrix.needsUpdate = true;
     }
 
     renderer.setAnimationLoop(render);

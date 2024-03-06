@@ -1,22 +1,66 @@
 import * as THREE from "three";
+import { monomerGeometry, monomerMaterial, strandColors } from "./constants.js";
 
 class System {
-    constructor(sizeScaling = 1/50) {
+    constructor(sizeScaling = 1/50, box) {
         this.sizeScaling = sizeScaling;
+        this.box = box;
         this.strands = [];
+        this.elements = new Map();
         this.idCounter = 0;
+    }
+
+    getSize() {
+        return this.elements.size;
     }
 
     getCenterOfMass() {
         const v = new THREE.Vector3();
-        let count = 0;
+        for (const m of this.elements.values()) {
+            v.add(m.position);
+        }
+        return v.divideScalar(this.getSize()).multiplyScalar(this.sizeScaling);
+    }
+
+    placeInBox() {
+        const origin = this.box.clone().divideScalar(2);
+        const centreOfMass = this.getCenterOfMass();
+
+        for (const m of this.elements.values()) {
+            m.position.add(centreOfMass).add(origin);
+        }
+    }
+
+    createViewMesh() {
+        this.instancedMesh = new THREE.InstancedMesh(
+            monomerGeometry,
+            monomerMaterial,
+            this.getSize()
+        );
+
+        this.instancedMesh.scale.multiplyScalar(
+            this.sizeScaling
+        );
+
+        this.instancedMesh.castShadow = true;
+        this.instancedMesh.receiveShadow = true;
+
+        // TODO: use dummy Matrix4 and makeTranslation() instead?
+        const dummy = new THREE.Object3D();
+        const strandColorsLen = strandColors.length;
         for (const strand of this.strands) {
             for (const m of strand.monomers) {
-                v.add(m.position);
-                count++;
+                const p = m.getBackbonePos();
+                dummy.position.copy(p);
+                dummy.updateMatrix();
+                this.instancedMesh.setMatrixAt(m.id, dummy.matrix);
+                this.instancedMesh.setColorAt(
+                    m.id,
+                    strandColors[strand.id % strandColorsLen]
+                );
             }
         }
-        return v.divideScalar(count).multiplyScalar(this.sizeScaling);
+        this.instancedMesh.instanceMatrix.needsUpdate = true;
     }
 }
 
@@ -29,61 +73,72 @@ class Strand {
 }
 
 class Monomer {
-    constructor(strand, position, a1, a3) {
+    constructor(id, type, strand, position, a1, a3) {
+        this.id = id;
+        this.type = type;
         this.strand = strand;
         this.position = position;
+        this.targetPosition = undefined;
         this.a1 = a1;
         this.a3 = a3;
         this.a2 = a1.clone().cross(a3);
-
-        // Use new id (need to correspond to instanceId)
-        this.id = strand.system.idCounter++;
+        this.strand.system.elements.set(this.id, this);
+        this.strand.system.idCounter = Math.max(
+            this.strand.system.idCounter,
+            this.id
+        );
     }
 
-    getBackbonePos() {
-        throw "Abstract method getBackbonePos() not implemented";
+    getBackbonePos(v = new THREE.Vector3()) {
+        return this._calcBackbonePos("position", v);
+    }
+
+    getTargetBackbonePos(v = new THREE.Vector3()) {
+        return this._calcBackbonePos("targetPosition", v);
+    }
+
+    _calcBackbonePos() {
+        throw "Abstract method _calcBackbonePos() not implemented";
     }
 }
 
 class DNAMonomer extends Monomer {
-    getBackbonePos() {
-        return new THREE.Vector3(
-            this.position.x - (0.34 * this.a1.x + 0.3408 * this.a2.x),
-            this.position.y - (0.34 * this.a1.y + 0.3408 * this.a2.y),
-            this.position.z - (0.34 * this.a1.z + 0.3408 * this.a2.z)
-        ).multiplyScalar(
-            this.strand.system.sizeScaling
+
+    _calcBackbonePos(p="position", v = new THREE.Vector3()) {
+        v.set(
+            this[p].x - (0.34 * this.a1.x + 0.3408 * this.a2.x),
+            this[p].y - (0.34 * this.a1.y + 0.3408 * this.a2.y),
+            this[p].z - (0.34 * this.a1.z + 0.3408 * this.a2.z)
         );
+        return v;
     }
 
-    getType() {
+    getCategory() {
         return "DNA";
     }
 }
 
 class RNAMonomer extends Monomer {
-    getBackbonePos() {
-        return new THREE.Vector3(
-            this.position.x - (0.4 * this.a1.x + 0.2 * this.a2.x),
-            this.position.y - (0.4 * this.a1.y + 0.2 * this.a2.y),
-            this.position.z - (0.4 * this.a1.z + 0.2 * this.a2.z)
-        ).multiplyScalar(
-            this.strand.system.sizeScaling
+    _calcBackbonePos(p="position", v = new THREE.Vector3()) {
+        v.set(
+            this[p].x - (0.4 * this.a1.x + 0.2 * this.a2.x),
+            this[p].y - (0.4 * this.a1.y + 0.2 * this.a2.y),
+            this[p].z - (0.4 * this.a1.z + 0.2 * this.a2.z)
         );
+        return v;
     }
-    getType() {
+    getCategory() {
         return "RNA";
     }
 }
 
 class AminoAcidMonomer extends Monomer {
-    getBackbonePos() {
-        return this.position.clone().multiplyScalar(
-            this.strand.system.sizeScaling
-        );
+    _calcBackbonePos(p="position", v = new THREE.Vector3()) {
+        v.copy(this[p]);
+        return v;
     }
 
-    getType() {
+    getCategory() {
         return "AA";
     }
 }
