@@ -472,6 +472,7 @@ function intersectObjects(controller) {
 
     if (intersections.length === 0) {
         line.scale.z = 5;
+        controller.userData.highlighted = undefined;
     }
     for (const intersection of intersections) {
         if (!intersection.object.isInstancedMesh) {
@@ -479,9 +480,11 @@ function intersectObjects(controller) {
         }
 
         const session = renderer.xr.getSession();
-        if (session) {  //only if we are in a webXR session
+        if (
+            session && //only if we are in a webXR session
+            // And need for a continuous haptic pulse
+            intersection.instanceId === controller.userData.highlighted) {
             for (const sourceXR of session.inputSources) {
-
                 if (!sourceXR.gamepad) continue;
                 if (
                     sourceXR &&
@@ -490,7 +493,7 @@ function intersectObjects(controller) {
                     sourceXR.gamepad.hapticActuators[0] &&
                     sourceXR.handedness == controller.name
                 ) {
-                    sourceXR.gamepad.hapticActuators[0].pulse(0.8, 100);
+                    sourceXR.gamepad.hapticActuators[0].pulse(0.4, 20);
                 }
             }
         }
@@ -503,6 +506,8 @@ function intersectObjects(controller) {
         object.instanceColor.needsUpdate = true;
         intersected.push([intersection.instanceId, object]);
         line.scale.z = intersection.distance;
+
+        controller.userData.highlighted = intersection.instanceId;
 
         break;
     }
