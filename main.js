@@ -60,7 +60,7 @@ function onSelectStart(event) {
         }
 
         // Draw a "tractor beam" cone
-        const pullArrow = drawCone(target, nucPos);
+        const pullArrow = drawCone(target, nucPos, controllerColors[controller.name]);
         scene.add(pullArrow);
 
         // Convert to oxDNA coordinates
@@ -148,6 +148,11 @@ let frameCounter = 0;
 let framesSinceLastStep = 0;
 
 const targetScale = new THREE.Vector3(1/50, 1/50, 1/50);
+
+const controllerColors = {
+    left: new THREE.Color(0x188DFF),
+    right: new THREE.Color(0xFF8B17)
+};
 
 const initSceneFromJSON = (txt) => {
     // we recieve an oxView file, so it's json
@@ -428,12 +433,17 @@ const init = () => {
         new THREE.Vector3(0, 0, -1)
     ]);
 
-    const line = new THREE.Line(geometry);
-    line.name = "line";
-    line.scale.z = 5;
-
-    controller1.add(line.clone());
-    controller2.add(line.clone());
+    [controller1, controller2].forEach(c=>{
+        const line = new THREE.Line(
+            geometry,
+            new THREE.LineBasicMaterial({
+                color: controllerColors[c.name]
+            })
+        );
+        line.name = "line";
+        line.scale.z = 5;
+        c.add(line);
+    });
 
     raycaster = new THREE.Raycaster();
 

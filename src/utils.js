@@ -32,7 +32,7 @@ function drawBox(size, position = new THREE.Vector3()) {
     return boxObj;
 }
 
-function drawCone(from, to, radius=0.015, radialSegments=6, color=0xffff00) {
+function drawCone(from, to, color=0xffff00, radius=0.015, radialSegments=6) {
     const geometry = new THREE.ConeGeometry(radius, 1, radialSegments);
     geometry.rotateX(Math.PI * 0.5);
     const material = new THREE.MeshPhongMaterial({
