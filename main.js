@@ -21,13 +21,26 @@ import {
 
 function onSelectStart(event) {
 
+    // Do not select things if there is no system
+    if (system === undefined) {
+        return;
+    }
+
     const controller = event.target;
     const intersections = getIntersections(controller);
 
-    if (intersections.length > 0) {
+    if (intersections.length == 0) {
+        if (forces.has(controller)) {
+            const f = forces.get(controller);
+            scene.remove(f.coneMesh);
+            forces.remove(controller);
+        }
+    }
 
-        const intersection = intersections[0];
-
+    for (const intersection of intersections) {
+        if (!intersection.object.isInstancedMesh) {
+            continue;
+        }
         const object = intersection.object;
         controller.userData.selected = object;
         controller.userData.selectedId = intersection.instanceId;
@@ -63,12 +76,7 @@ function onSelectStart(event) {
             nucId: intersection.instanceId
         });
 
-    } else {
-        if (forces.has(controller)) {
-            const f = forces.get(controller);
-            scene.remove(f.coneMesh);
-            forces.remove(controller);
-        }
+        break;
     }
 
     let forceStr = [...forces.values()].map(f =>
@@ -139,7 +147,7 @@ let stepCounter = 0;
 let frameCounter = 0;
 let framesSinceLastStep = 0;
 
-const sizeScaling = 1/50;
+const targetScale = new THREE.Vector3(1/50, 1/50, 1/50);
 
 const initSceneFromJSON = (txt) => {
     // we recieve an oxView file, so it's json
@@ -147,9 +155,6 @@ const initSceneFromJSON = (txt) => {
 
     box = new THREE.Vector3().fromArray(json_data.box);
 
-    scene.add(drawBox(box.clone().multiplyScalar(sizeScaling)));
-    const axesHelper = new THREE.AxesHelper(0.1);
-    scene.add(axesHelper);
 
     console.log(json_data);
 
@@ -169,12 +174,10 @@ const initSceneFromJSON = (txt) => {
         if (child.material) child.material.dispose();
     }
 
-    system = new System(sizeScaling, box);
+    system = new System(box);
     strands.forEach(strandData => {
         const strand = new Strand(system, strandData.id);
         system.strands.push(strand);
-        // Reverse strands to keep elements on the scene 3 -> 5
-        // I'll regret this deeply, but dat parsing is in order
         strandData.monomers.forEach(monomerData => {
             let monomerClass;
             switch (monomerData.class) {
@@ -214,10 +217,20 @@ const initSceneFromJSON = (txt) => {
     //system.instancedMesh.position.add(com);
 
     group.add(system.instancedMesh);
-    const origin = system.box.clone().multiplyScalar(0.5 * system.sizeScaling);
-    group.position.sub(origin);
+
+    const axesHelper = new THREE.AxesHelper(10);
+    const boxMesh = drawBox(box.clone());
+
+    const origin = system.box.clone().multiplyScalar(0.5);
+
+    system.instancedMesh.position.sub(origin);
     axesHelper.position.sub(origin);
 
+    group.add(boxMesh);
+    group.add(axesHelper);
+
+    // Set small initial scale (actual oxDNA scale)
+    group.scale.multiplyScalar(8.518E-10);
 
     //generate its description in oxDNA world
     let top_file = makeTopFile(system);
@@ -382,11 +395,13 @@ const init = () => {
     // controllers
 
     controller1 = renderer.xr.getController(0);
+    controller1.name="left";
     controller1.addEventListener("selectstart", onSelectStart);
     controller1.addEventListener("selectend", onSelectEnd);
     scene.add(controller1);
 
     controller2 = renderer.xr.getController(1);
+    controller2.name="right";
     controller2.addEventListener("selectstart", onSelectStart);
     controller2.addEventListener("selectend", onSelectEnd);
     scene.add(controller2);
@@ -442,15 +457,40 @@ function getIntersections(controller) {
 function intersectObjects(controller) {
 
     // Do not highlight when already selected
-
-    if (controller.userData.selected !== undefined) return;
+    // Do not check intersections when there is no system
+    if (system === undefined ||
+        controller.userData.selected !== undefined
+    ) {
+        return;
+    }
 
     const line = controller.getObjectByName("line");
     const intersections = getIntersections(controller);
 
-    if (intersections.length > 0) {
+    if (intersections.length === 0) {
+        line.scale.z = 5;
+    }
+    for (const intersection of intersections) {
+        if (!intersection.object.isInstancedMesh) {
+            continue;
+        }
 
-        const intersection = intersections[0];
+        const session = renderer.xr.getSession();
+        if (session) {  //only if we are in a webXR session
+            for (const sourceXR of session.inputSources) {
+
+                if (!sourceXR.gamepad) continue;
+                if (
+                    sourceXR &&
+                    sourceXR.gamepad &&
+                    sourceXR.gamepad.hapticActuators &&
+                    sourceXR.gamepad.hapticActuators[0] &&
+                    sourceXR.handedness == controller.name
+                ) {
+                    sourceXR.gamepad.hapticActuators[0].pulse(0.8, 100);
+                }
+            }
+        }
 
         const object = intersection.object;
         const color = new THREE.Color();
@@ -461,8 +501,7 @@ function intersectObjects(controller) {
         intersected.push([intersection.instanceId, object]);
         line.scale.z = intersection.distance;
 
-    } else {
-        line.scale.z = 5;
+        break;
     }
 
 }
@@ -486,6 +525,8 @@ function render() {
 
     intersectObjects(controller1);
     intersectObjects(controller2);
+
+    group.scale.lerp(targetScale, 0.01);
 
     renderer.render(scene, camera);
 

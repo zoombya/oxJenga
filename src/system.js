@@ -2,8 +2,7 @@ import * as THREE from "three";
 import { monomerGeometry, monomerMaterial, strandColors } from "./constants.js";
 
 class System {
-    constructor(sizeScaling = 1/50, box) {
-        this.sizeScaling = sizeScaling;
+    constructor(box) {
         this.box = box;
         this.strands = [];
         this.elements = new Map();
@@ -19,7 +18,7 @@ class System {
         for (const m of this.elements.values()) {
             v.add(m.position);
         }
-        return v.divideScalar(this.getSize()).multiplyScalar(this.sizeScaling);
+        return v.divideScalar(this.getSize());
     }
 
     placeInBox() {
@@ -36,10 +35,6 @@ class System {
             monomerGeometry,
             monomerMaterial,
             this.getSize()
-        );
-
-        this.instancedMesh.scale.multiplyScalar(
-            this.sizeScaling
         );
 
         this.instancedMesh.castShadow = true;
@@ -78,7 +73,7 @@ class Monomer {
         this.type = type;
         this.strand = strand;
         this.position = position;
-        this.targetPosition = undefined;
+        this.targetPosition = position;
         this.a1 = a1;
         this.a3 = a3;
         this.a2 = a1.clone().cross(a3);
