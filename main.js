@@ -229,9 +229,6 @@ const initSceneFromJSON = (txt) => {
     group.add(boxMesh);
     group.add(axesHelper);
 
-    // Set small initial scale (actual oxDNA scale)
-    group.scale.multiplyScalar(8.518E-10);
-
     //generate its description in oxDNA world
     let top_file = makeTopFile(system);
     let dat_file = makeDatFile(system);
@@ -349,6 +346,7 @@ const init = () => {
     // we'll use the group to add stuff as this is
     // allows for grabbing the entire thing
     group = new THREE.Group();
+    group.scale.copy(targetScale);
 
     scene.add(group);
 
@@ -362,6 +360,11 @@ const init = () => {
     renderer.xr.enabled = true;
     renderer.xr.setReferenceSpaceType("local");
     container.appendChild(renderer.domElement);
+
+    renderer.xr.addEventListener("sessionstart", ()=>{
+        // Set small initial scale (actual oxDNA scale)
+        group.scale.multiplyScalar(8.518E-10);
+    });
 
     document.body.appendChild(XRButton.createButton(renderer, {
         optionalFeatures: ["light-estimation"]
