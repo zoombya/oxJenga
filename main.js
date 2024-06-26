@@ -260,15 +260,15 @@ scene.background = new THREE.Color(0x00000,0)
 
   class DesignStorage{
     designs = [
-      "6-bar.oxview",
+      //"6-bar.oxview",
       "hairygami.oxview",
-      "Leaf.oxview",
-      "monohole_1b.oxview",
-      "moon.oxview",
-      "meta.oxview",
-      "gated-channel.oxview",
-      "gripper.oxview",
-      "teather.oxview",
+      //"Leaf.oxview",
+      //"monohole_1b.oxview",
+      //"moon.oxview",
+      //"meta.oxview",
+      //"gated-channel.oxview",
+      //"gripper.oxview",
+      //"teather.oxview",
       //"planeV3.oxview"
     ] 
     constructor(){
