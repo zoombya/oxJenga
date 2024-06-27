@@ -261,7 +261,8 @@ scene.background = new THREE.Color(0x00000,0)
   class DesignStorage{
     designs = [
       //"6-bar.oxview",
-      "hairygami.oxview",
+      //"hairygami.oxview",
+      "fcube.oxview"
       //"Leaf.oxview",
       //"monohole_1b.oxview",
       //"moon.oxview",
@@ -286,7 +287,8 @@ scene.background = new THREE.Color(0x00000,0)
     }
     getRand(){
       this.counter = Math.floor(Math.random()*this.designs.length)
-      return this.designs[this.counter]
+      //return this.designs[this.counter]
+      return this.designs[0]
     }
 
   }
@@ -402,15 +404,15 @@ xrLight.addEventListener( 'estimationend', () => {
   scene.add( controllerGrip2 ) 
 
   
-  //handle new design loading 
-  controller1.addEventListener('squeezeend',()=>{
-    if(!selection_state)
-      fetch(designStorage.getPrev()).then((resp)=>resp.text()).then(initSceneFromJSON)
-  })
-  controller2.addEventListener('squeezeend',()=>{
-    if(!selection_state)
-      fetch(designStorage.getNext()).then((resp)=>resp.text()).then(initSceneFromJSON)
-  })
+  // //handle new design loading 
+  // controller1.addEventListener('squeezeend',()=>{
+  //   if(!selection_state)
+  //     fetch(designStorage.getPrev()).then((resp)=>resp.text()).then(initSceneFromJSON)
+  // })
+  // controller2.addEventListener('squeezeend',()=>{
+  //   if(!selection_state)
+  //     fetch(designStorage.getNext()).then((resp)=>resp.text()).then(initSceneFromJSON)
+  // })
    
   //
 
