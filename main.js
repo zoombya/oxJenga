@@ -433,7 +433,7 @@ xrLight.addEventListener( 'estimationend', () => {
 
 
   //work on oxserve stuff 
-  //let socket = establishConnection()
+  let socket = establishConnection()
 
   //console.log(socket)
 }
