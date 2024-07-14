@@ -117,13 +117,13 @@ const initSceneFromJSON = (txt) => {
   // while (group.children.length != 0 )
   // group.children.pop()
   // const group = /* your Three.js group */;
-  while(group.children.length > 0) {
-      let child = group.children[0];
-      group.remove(child);
-      // Optional: Dispose geometry and material if they are no longer needed
-      if(child.geometry) child.geometry.dispose();
-      if(child.material) child.material.dispose();
-  } 
+  // while(group.children.length > 0) {
+  //     let child = group.children[0];
+  //     group.remove(child);
+  //     // Optional: Dispose geometry and material if they are no longer needed
+  //     if(child.geometry) child.geometry.dispose();
+  //     if(child.material) child.material.dispose();
+  // } 
 
 
 
@@ -167,8 +167,8 @@ const initSceneFromJSON = (txt) => {
 
 
   //generate it's description in oxDNA world
-  let top_file = makeTopFile(strands, n_monomers)
-  let dat_file = makeDatFile(strands, box)
+  //let top_file = makeTopFile(strands, n_monomers)
+  //let dat_file = makeDatFile(strands, box)
   
   // let's establish oxServe connection and update cycles here 
   // We block the connection for now
@@ -262,13 +262,13 @@ scene.background = new THREE.Color(0x00000,0)
     designs = [
       //"6-bar.oxview",
       //"hairygami.oxview",
-      "fcube.oxview"
-      //"Leaf.oxview",
-      //"monohole_1b.oxview",
+      //"fcube.oxview",
+      "Leaf.oxview",
+      "monohole_1b.oxview",
       //"moon.oxview",
       //"meta.oxview",
-      //"gated-channel.oxview",
-      //"gripper.oxview",
+      // "gated-channel.oxview",
+      "gripper.oxview",
       //"teather.oxview",
       //"planeV3.oxview"
     ] 
@@ -287,8 +287,8 @@ scene.background = new THREE.Color(0x00000,0)
     }
     getRand(){
       this.counter = Math.floor(Math.random()*this.designs.length)
-      //return this.designs[this.counter]
-      return this.designs[0]
+      return this.designs[this.counter]
+      //return this.designs[0]
     }
 
   }
@@ -298,7 +298,11 @@ scene.background = new THREE.Color(0x00000,0)
   
 let designStorage = new DesignStorage()
 //load up first design
-fetch(designStorage.getRand()).then((resp)=>resp.text()).then(initSceneFromJSON)
+fetch(designStorage.designs[0]).then((resp)=>resp.text()).then(initSceneFromJSON)
+fetch(designStorage.designs[1]).then((resp)=>resp.text()).then(initSceneFromJSON)
+fetch(designStorage.designs[2]).then((resp)=>resp.text()).then(initSceneFromJSON)
+// fetch(designStorage.designs[3]).then((resp)=>resp.text()).then(initSceneFromJSON)
+// fetch(designStorage.designs[4]).then((resp)=>resp.text()).then(initSceneFromJSON)
   
   // fetch("./monohole_1b.oxview").then((resp)=>resp.text()).then((txt) =>{
   //   [strands, n_elements] = initSceneFromJSON(txt)
@@ -433,7 +437,7 @@ xrLight.addEventListener( 'estimationend', () => {
 
 
   //work on oxserve stuff 
-  let socket = establishConnection()
+  //let socket = establishConnection()
 
   //console.log(socket)
 }
@@ -454,9 +458,9 @@ function getIntersections( controller ) {
   raycaster.ray.origin.setFromMatrixPosition( controller.matrixWorld ) 
   raycaster.ray.direction.set( 0, 0, - 1 ).applyMatrix4( tempMatrix ) 
 
-  //return raycaster.intersectObjects( group.children, false )
+  return raycaster.intersectObjects( group.children, true )
   
-  return raycaster.intersectObjects(group.children,false)
+  //return raycaster.intersectObjects(group.children,false)
   //return raycaster.intersectObjects( scene.children, false ) 
 }
 
