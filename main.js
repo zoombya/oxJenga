@@ -263,12 +263,12 @@ scene.background = new THREE.Color(0x00000,0)
       //"6-bar.oxview",
       //"hairygami.oxview",
       //"fcube.oxview",
-      "Leaf.oxview",
+      //"Leaf.oxview",
       "monohole_1b.oxview",
       //"moon.oxview",
       //"meta.oxview",
       // "gated-channel.oxview",
-      "gripper.oxview",
+      //"gripper.oxview",
       //"teather.oxview",
       //"planeV3.oxview"
     ] 
@@ -299,8 +299,8 @@ scene.background = new THREE.Color(0x00000,0)
 let designStorage = new DesignStorage()
 //load up first design
 fetch(designStorage.designs[0]).then((resp)=>resp.text()).then(initSceneFromJSON)
-fetch(designStorage.designs[1]).then((resp)=>resp.text()).then(initSceneFromJSON)
-fetch(designStorage.designs[2]).then((resp)=>resp.text()).then(initSceneFromJSON)
+//fetch(designStorage.designs[1]).then((resp)=>resp.text()).then(initSceneFromJSON)
+//fetch(designStorage.designs[2]).then((resp)=>resp.text()).then(initSceneFromJSON)
 // fetch(designStorage.designs[3]).then((resp)=>resp.text()).then(initSceneFromJSON)
 // fetch(designStorage.designs[4]).then((resp)=>resp.text()).then(initSceneFromJSON)
   
@@ -346,8 +346,13 @@ fetch(designStorage.designs[2]).then((resp)=>resp.text()).then(initSceneFromJSON
   renderer.xr.enabled = true 
   container.appendChild( renderer.domElement ) 
 
-  document.body.appendChild( XRButton.createButton( renderer, { optionalFeatures: [ 'light-estimation' ] } ) ) 
-
+  document.body.appendChild( XRButton.createButton( renderer, { optionalFeatures: [ 'light-estimation' , 'depth-sensing'],
+    'depthSensing': { 'usagePreference': [ 'gpu-optimized' ], 'dataFormatPreference': []}
+   } ) ) 
+  // document.body.appendChild( XRButton.createButton( renderer, {
+  //   'optionalFeatures': [ 'depth-sensing' ],
+  //   'depthSensing': { 'usagePreference': [ 'gpu-optimized' ], 'dataFormatPreference': [] }
+  // } ) );
 
 
 // Don't add the XREstimatedLight to the scene initially.
